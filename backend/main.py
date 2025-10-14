@@ -20,7 +20,7 @@ app = FastAPI(title="Konversi Data API", version="1.0.0")
 # Untuk production dengan Docker, izinkan akses dari frontend container dan localhost
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,http://frontend:3000"
+    "http://localhost:3030,http://konversi-data-frontend:3030"
 ).split(",")
 
 app.add_middleware(
