@@ -104,6 +104,14 @@ restart_app() {
 show_status() {
     print_header "Application Status"
 
+    # Load environment variables
+    if [ -f .env ]; then
+        export $(grep -v '^#' .env | xargs)
+    fi
+
+    BACKEND_PORT=${BACKEND_PORT:-8000}
+    FRONTEND_PORT=${FRONTEND_PORT:-3000}
+
     echo "Container Status:"
     docker-compose ps
     echo ""
@@ -111,24 +119,24 @@ show_status() {
     echo "Health Checks:"
 
     # Backend health
-    if curl -s http://localhost:8000/health > /dev/null 2>&1; then
-        print_success "Backend: Running (http://localhost:8000)"
+    if curl -s http://localhost:$BACKEND_PORT/health > /dev/null 2>&1; then
+        print_success "Backend: Running (http://localhost:$BACKEND_PORT)"
     else
         print_error "Backend: Not responding"
     fi
 
     # Frontend health
-    if curl -s http://localhost:3000 > /dev/null 2>&1; then
-        print_success "Frontend: Running (http://localhost:3000)"
+    if curl -s http://localhost:$FRONTEND_PORT > /dev/null 2>&1; then
+        print_success "Frontend: Running (http://localhost:$FRONTEND_PORT)"
     else
         print_error "Frontend: Not responding"
     fi
 
     echo ""
     echo "Access URLs:"
-    echo "  Frontend:  http://localhost:3000"
-    echo "  Backend:   http://localhost:8000"
-    echo "  API Docs:  http://localhost:8000/docs"
+    echo "  Frontend:  http://localhost:$FRONTEND_PORT"
+    echo "  Backend:   http://localhost:$BACKEND_PORT"
+    echo "  API Docs:  http://localhost:$BACKEND_PORT/docs"
 }
 
 # Show logs
