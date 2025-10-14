@@ -17,11 +17,16 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Konversi Data API", version="1.0.0")
 
 # CORS middleware untuk frontend
-# Allow all origins untuk development (ganti dengan origins spesifik di production)
+# Untuk production dengan Docker, izinkan akses dari frontend container dan localhost
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://frontend:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Allow all origins untuk development
-    allow_credentials=False,  # Harus False jika allow_origins="*"
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

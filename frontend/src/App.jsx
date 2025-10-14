@@ -17,11 +17,13 @@ import {
   Progress,
   Badge,
   HStack,
+  Flex,
 } from '@chakra-ui/react'
-import { FiFile, FiDownload } from 'react-icons/fi'
+import { FiFile, FiDownload, FiHeart } from 'react-icons/fi'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:8000'
+// API URL - bisa diubah via environment variable saat build
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
   const [file, setFile] = useState(null)
@@ -269,6 +271,21 @@ function App() {
               </VStack>
             </CardBody>
           </Card>
+
+          {/* Footer */}
+          <Flex
+            justifyContent="center"
+            alignItems="center"
+            py={6}
+            borderTop="1px"
+            borderColor="gray.200"
+          >
+            <Text fontSize="sm" color="gray.600" textAlign="center">
+              © 2025, Dibuat dengan{' '}
+              <Icon as={FiHeart} color="red.500" display="inline" mb="-2px" />
+              {' '}oleh <Text as="span" fontWeight="semibold" color="gray.700">Kurnia Ramadhan</Text>
+            </Text>
+          </Flex>
         </VStack>
       </Container>
     </Box>

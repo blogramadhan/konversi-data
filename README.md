@@ -227,6 +227,89 @@ Build output akan ada di `frontend/dist/`
 
 ---
 
+## 🐳 Docker Deployment
+
+### Prerequisites
+- Docker
+- Docker Compose
+
+### Quick Start dengan Docker
+
+1. **Build dan jalankan semua services:**
+```bash
+docker-compose up -d
+```
+
+2. **Akses aplikasi:**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+   - API Docs: http://localhost:8000/docs
+
+3. **Lihat logs:**
+```bash
+# Semua services
+docker-compose logs -f
+
+# Backend saja
+docker-compose logs -f backend
+
+# Frontend saja
+docker-compose logs -f frontend
+```
+
+4. **Stop aplikasi:**
+```bash
+docker-compose down
+```
+
+5. **Stop dan hapus volumes:**
+```bash
+docker-compose down -v
+```
+
+### Docker Commands
+
+**Build ulang images:**
+```bash
+docker-compose build
+```
+
+**Rebuild tanpa cache:**
+```bash
+docker-compose build --no-cache
+```
+
+**Check status containers:**
+```bash
+docker-compose ps
+```
+
+**Masuk ke container:**
+```bash
+# Backend
+docker-compose exec backend sh
+
+# Frontend
+docker-compose exec frontend sh
+```
+
+### Production Deployment
+
+Untuk production, pastikan:
+
+1. Update environment variables di `.env`:
+```env
+CORS_ORIGINS=https://yourdomain.com
+VITE_API_URL=https://api.yourdomain.com
+```
+
+2. Gunakan reverse proxy (nginx/traefik) di depan containers
+3. Enable HTTPS dengan SSL certificates
+4. Setup monitoring dan logging
+5. Configure restart policies di docker-compose.yml
+
+---
+
 ## ⚙️ Environment Variables
 
 Copy `.env.example` ke `.env` dan sesuaikan jika diperlukan:
@@ -262,6 +345,8 @@ Jika mengalami masalah, lihat **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** untuk
 | Dokumen | Deskripsi |
 |---------|-----------|
 | 🚀 **[QUICK_START.md](QUICK_START.md)** | Panduan cepat untuk memulai |
+| 🐳 **[DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)** | Panduan lengkap Docker deployment |
+| 🚢 **[SERVER_DEPLOYMENT.md](SERVER_DEPLOYMENT.md)** | Deploy ke server production |
 | 🔧 **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Panduan mengatasi masalah |
 | 🐛 **[DEBUG_CHECKLIST.md](DEBUG_CHECKLIST.md)** | Debug checklist lengkap |
 | 🚨 **[UNTUK_ERROR_KONVERSI_GAGAL.md](UNTUK_ERROR_KONVERSI_GAGAL.md)** | Fix error "Konversi gagal" |
