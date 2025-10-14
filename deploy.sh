@@ -110,7 +110,7 @@ show_status() {
     fi
 
     BACKEND_PORT=${BACKEND_PORT:-8000}
-    FRONTEND_PORT=${FRONTEND_PORT:-3000}
+    FRONTEND_PORT=${FRONTEND_PORT:-3030}
 
     echo "Container Status:"
     docker-compose ps

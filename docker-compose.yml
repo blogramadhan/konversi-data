@@ -32,10 +32,10 @@ services:
     container_name: konversi-data-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
+      - "${FRONTEND_PORT:-3030}:${FRONTEND_PORT:-3030}"
     environment:
       - NODE_ENV=production
-      - PORT=${FRONTEND_PORT:-3000}
+      - PORT=${FRONTEND_PORT:-3030}
     depends_on:
       backend:
         condition: service_healthy

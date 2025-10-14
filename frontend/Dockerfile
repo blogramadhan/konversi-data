@@ -23,10 +23,10 @@ RUN npm run build
 RUN npm install -g serve
 
 # Environment variable untuk port
-ENV PORT=3000
+ENV PORT=3030
 
 # Expose port (akan dioverride oleh docker-compose)
-EXPOSE 3000
+EXPOSE 3030
 
 # Start application dengan serve menggunakan PORT variable
 CMD sh -c "serve -s dist -l $PORT"
