@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml uv.lock ./
 
 # Install Python dependencies using uv
-RUN uv pip install --system --no-cache fastapi uvicorn[standard] python-multipart duckdb pandas openpyxl python-dotenv
+RUN uv pip install --system --no-cache fastapi uvicorn[standard] python-multipart duckdb pandas openpyxl python-dotenv requests
 
 # Copy application code from backend directory
 COPY backend/ ./
@@ -37,7 +37,7 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
 # Run application with uvicorn
