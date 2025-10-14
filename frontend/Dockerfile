@@ -29,5 +29,4 @@ ENV PORT=3030
 EXPOSE 3030
 
 # Start application dengan serve menggunakan PORT variable
-# Configure serve with no size limit for file uploads
-CMD sh -c "serve -s dist -l $PORT --no-request-logging"
+CMD sh -c "serve -s dist -l $PORT"

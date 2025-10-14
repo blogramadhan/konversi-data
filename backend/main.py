@@ -1,7 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 import duckdb
 import pandas as pd
 import json
@@ -15,25 +14,7 @@ from typing import Optional
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Increase max upload size (500MB)
-MAX_UPLOAD_SIZE = 500 * 1024 * 1024  # 500MB in bytes
-
-class LimitUploadSizeMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        if request.method == "POST":
-            content_length = request.headers.get("content-length")
-            if content_length and int(content_length) > MAX_UPLOAD_SIZE:
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"File terlalu besar. Maksimum {MAX_UPLOAD_SIZE // (1024 * 1024)}MB"
-                )
-        response = await call_next(request)
-        return response
-
 app = FastAPI(title="Konversi Data API", version="1.0.0")
-
-# Add middleware for upload size validation
-app.add_middleware(LimitUploadSizeMiddleware)
 
 # CORS middleware untuk frontend
 # Untuk production dengan Docker, izinkan akses dari frontend container dan localhost
