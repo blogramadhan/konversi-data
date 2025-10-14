@@ -1,0 +1,42 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+
+# Backend temporary files
+backend/temp_uploads/
+backend/temp_outputs/
+temp_uploads/
+temp_outputs/
+*.log
+
+# Test output files
+test_*.xlsx
+test_*.py
+*_output_*.xlsx
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

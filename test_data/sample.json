@@ -1,0 +1,32 @@
+[
+  {
+    "nama": "John Doe",
+    "umur": 30,
+    "kota": "Jakarta",
+    "email": "john@example.com"
+  },
+  {
+    "nama": "Jane Smith",
+    "umur": 25,
+    "kota": "Bandung",
+    "email": "jane@example.com"
+  },
+  {
+    "nama": "Bob Johnson",
+    "umur": 35,
+    "kota": "Surabaya",
+    "email": "bob@example.com"
+  },
+  {
+    "nama": "Alice Williams",
+    "umur": 28,
+    "kota": "Medan",
+    "email": "alice@example.com"
+  },
+  {
+    "nama": "Charlie Brown",
+    "umur": 32,
+    "kota": "Semarang",
+    "email": "charlie@example.com"
+  }
+]
