@@ -10,15 +10,14 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Install uv using pip (more reliable for Docker)
+RUN pip install --no-cache-dir uv
 
 # Copy dependency files from parent directory
 COPY pyproject.toml uv.lock ./
 
 # Install Python dependencies using uv
-RUN uv pip install --system --no-cache fastapi uvicorn python-multipart duckdb pandas openpyxl python-dotenv
+RUN uv pip install --system --no-cache fastapi uvicorn[standard] python-multipart duckdb pandas openpyxl python-dotenv
 
 # Copy application code from backend directory
 COPY backend/ ./
