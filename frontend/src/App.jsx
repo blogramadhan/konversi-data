@@ -27,7 +27,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
   const [file, setFile] = useState(null)
-  const [sheetName, setSheetName] = useState('Data')
   const [loading, setLoading] = useState(false)
   const toast = useToast()
 
@@ -67,7 +66,6 @@ function App() {
 
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('sheet_name', sheetName)
 
     try {
       const response = await axios.post(`${API_URL}/convert`, formData, {
@@ -141,7 +139,6 @@ function App() {
 
   const handleReset = () => {
     setFile(null)
-    setSheetName('Data')
   }
 
   return (
@@ -200,20 +197,6 @@ function App() {
                     </HStack>
                   )}
 
-                  {/* Sheet Name */}
-                  <FormControl>
-                    <FormLabel>Nama Sheet Excel</FormLabel>
-                    <Input
-                      value={sheetName}
-                      onChange={(e) => setSheetName(e.target.value)}
-                      placeholder="Data"
-                      disabled={loading}
-                    />
-                    <FormHelperText>
-                      Nama sheet yang akan dibuat di file Excel
-                    </FormHelperText>
-                  </FormControl>
-
                   {/* Progress */}
                   {loading && (
                     <Box>
@@ -260,13 +243,13 @@ function App() {
                   1. Pilih file JSON atau CSV yang ingin dikonversi
                 </Text>
                 <Text fontSize="sm" color="gray.700">
-                  2. Atur nama sheet (opsional)
+                  2. Klik "Konversi ke Excel" untuk memulai konversi
                 </Text>
                 <Text fontSize="sm" color="gray.700">
-                  3. Klik "Konversi ke Excel" untuk memulai konversi
+                  3. File Excel akan otomatis terunduh setelah konversi selesai
                 </Text>
                 <Text fontSize="sm" color="gray.700">
-                  4. File Excel akan otomatis terunduh setelah konversi selesai
+                  4. Konversi dilakukan menggunakan DuckDB untuk performa terbaik
                 </Text>
               </VStack>
             </CardBody>
