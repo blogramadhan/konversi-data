@@ -2,11 +2,13 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import duckdb
+import pandas as pd
 import json
 import tempfile
 import os
 import logging
 from pathlib import Path
+from typing import Optional
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -48,7 +50,10 @@ async def root():
 
 
 @app.post("/convert")
-async def convert_to_excel(file: UploadFile = File(...)):
+async def convert_to_excel(
+    file: UploadFile = File(...),
+    sheet_name: Optional[str] = "Data"
+):
     """
     Endpoint untuk konversi file JSON atau CSV ke Excel
     """
@@ -81,41 +86,41 @@ async def convert_to_excel(file: UploadFile = File(...)):
 
         logger.info(f"File saved to: {upload_path}")
 
+        # Proses dengan DuckDB
+        conn = duckdb.connect(':memory:')
+
+        try:
+            if file_ext == 'json':
+                # Load JSON dengan DuckDB
+                logger.info("Loading JSON file...")
+                df = conn.execute(f"""
+                    SELECT * FROM read_json_auto('{upload_path}')
+                """).fetchdf()
+            else:  # csv
+                # Load CSV dengan DuckDB
+                logger.info("Loading CSV file...")
+                df = conn.execute(f"""
+                    SELECT * FROM read_csv_auto('{upload_path}')
+                """).fetchdf()
+        finally:
+            conn.close()
+
+        logger.info(f"Data loaded: {len(df)} rows, {len(df.columns)} columns")
+
+        # Validasi data
+        if df.empty:
+            raise HTTPException(status_code=400, detail="File tidak mengandung data")
+
         # Generate output filename
         output_filename = f"{Path(file.filename).stem}_converted.xlsx"
         output_path = OUTPUT_DIR / output_filename
 
-        # Proses dengan DuckDB - konversi langsung ke Excel
-        conn = duckdb.connect(':memory:')
+        # Konversi ke Excel menggunakan pandas
+        logger.info(f"Converting to Excel: {output_filename}")
+        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        try:
-            # Install dan load spatial extension untuk GDAL (mendukung Excel)
-            logger.info("Installing DuckDB spatial extension...")
-            conn.execute("INSTALL spatial;")
-            conn.execute("LOAD spatial;")
-
-            if file_ext == 'json':
-                # Load JSON dan konversi ke Excel dengan DuckDB
-                logger.info("Loading JSON file and converting to Excel...")
-                conn.execute(f"""
-                    COPY (SELECT * FROM read_json_auto('{upload_path}'))
-                    TO '{output_path}' (FORMAT GDAL, DRIVER 'XLSX');
-                """)
-            else:  # csv
-                # Load CSV dan konversi ke Excel dengan DuckDB
-                logger.info("Loading CSV file and converting to Excel...")
-                conn.execute(f"""
-                    COPY (SELECT * FROM read_csv_auto('{upload_path}'))
-                    TO '{output_path}' (FORMAT GDAL, DRIVER 'XLSX');
-                """)
-
-            # Validasi bahwa file output telah dibuat
-            if not output_path.exists():
-                raise HTTPException(status_code=500, detail="File Excel gagal dibuat")
-
-            logger.info("Conversion successful")
-        finally:
-            conn.close()
+        logger.info("Conversion successful")
 
         # Return file Excel
         return FileResponse(
@@ -157,7 +162,8 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "duckdb_version": duckdb.__version__
+        "duckdb_version": duckdb.__version__,
+        "pandas_version": pd.__version__
     }
 
 

@@ -14,10 +14,10 @@ Aplikasi web untuk konversi file JSON dan CSV ke format Excel (.xlsx) menggunaka
 
 - ✅ Upload file JSON atau CSV
 - ✅ Konversi otomatis ke format Excel
+- ✅ Kustomisasi nama sheet
 - ✅ Interface yang user-friendly dengan Chakra UI
-- ✅ Processing data sepenuhnya menggunakan DuckDB untuk performa optimal
+- ✅ Processing data menggunakan DuckDB untuk performa optimal
 - ✅ Download otomatis file hasil konversi
-- ✅ Zero dependency pada pandas - murni DuckDB untuk efisiensi maksimal
 
 ---
 
@@ -25,8 +25,9 @@ Aplikasi web untuk konversi file JSON dan CSV ke format Excel (.xlsx) menggunaka
 
 ### Backend
 - **FastAPI** - Modern Python web framework
-- **DuckDB** - In-memory database untuk processing data yang cepat dan export ke Excel
-- **DuckDB Spatial Extension** - GDAL driver untuk menulis file Excel
+- **DuckDB** - In-memory database untuk processing data yang cepat
+- **Pandas** - Data manipulation dan export ke Excel
+- **OpenPyXL** - Excel file handling
 
 ### Frontend
 - **React** - UI library
@@ -119,8 +120,9 @@ Akses di browser: **http://localhost:5173**
 
 1. Buka browser dan akses `http://localhost:5173`
 2. Klik tombol **"Choose File"** dan pilih file JSON atau CSV
-3. Klik tombol **"Konversi ke Excel"**
-4. File Excel akan otomatis terunduh setelah konversi selesai ✅
+3. (Opsional) Ubah nama sheet di field **"Nama Sheet Excel"**
+4. Klik tombol **"Konversi ke Excel"**
+5. File Excel akan otomatis terunduh setelah konversi selesai ✅
 
 ---
 
@@ -134,6 +136,7 @@ Konversi file JSON/CSV ke Excel
 
 **Parameters:**
 - `file` (form-data, required): File JSON atau CSV yang akan dikonversi
+- `sheet_name` (form-data, optional): Nama sheet di Excel (default: "Data")
 
 **Response:**
 - File Excel (.xlsx) siap download
@@ -145,7 +148,8 @@ Health check endpoint
 ```json
 {
   "status": "healthy",
-  "duckdb_version": "1.4.1"
+  "duckdb_version": "1.4.1",
+  "pandas_version": "2.3.3"
 }
 ```
 
@@ -366,6 +370,7 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000
 # Test dengan cURL (terminal lain)
 curl -X POST http://localhost:8000/convert \
   -F "file=@test_data/sample.json" \
+  -F "sheet_name=Test" \
   -o output.xlsx
 ```
 
