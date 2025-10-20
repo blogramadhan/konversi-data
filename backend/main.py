@@ -43,7 +43,16 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Directory untuk persistent data (database)
 DATA_DIR = Path("data")
-DATA_DIR.mkdir(exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    # Test write permission
+    test_file = DATA_DIR / ".test_write"
+    test_file.touch()
+    test_file.unlink()
+    logger.info(f"Data directory initialized at: {DATA_DIR.absolute()}")
+except Exception as e:
+    logger.error(f"Failed to initialize data directory: {e}")
+    raise
 
 # Database untuk counter - simpan di folder data yang persistent
 DB_PATH = DATA_DIR / "conversion_stats.db"
@@ -52,8 +61,13 @@ DB_PATH = DATA_DIR / "conversion_stats.db"
 # Initialize database
 def init_db():
     """Initialize SQLite database for conversion statistics"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    try:
+        logger.info(f"Initializing database at: {DB_PATH.absolute()}")
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+    except Exception as e:
+        logger.error(f"Failed to connect to database at {DB_PATH}: {e}")
+        raise
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversion_stats (

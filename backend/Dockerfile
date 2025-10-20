@@ -22,9 +22,9 @@ RUN uv pip install --system --no-cache fastapi uvicorn[standard] python-multipar
 # Copy application code from backend directory
 COPY backend/ ./
 
-# Create directories for temporary files
-RUN mkdir -p temp_uploads temp_outputs && \
-    chmod 755 temp_uploads temp_outputs
+# Create directories for temporary files and persistent data
+RUN mkdir -p temp_uploads temp_outputs data && \
+    chmod 755 temp_uploads temp_outputs data
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \
