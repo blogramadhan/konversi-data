@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Container,
@@ -23,8 +23,13 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  SimpleGrid,
 } from '@chakra-ui/react'
-import { FiFile, FiDownload, FiHeart, FiLink, FiUpload } from 'react-icons/fi'
+import { FiFile, FiDownload, FiHeart, FiLink, FiUpload, FiTrendingUp, FiBarChart2, FiActivity } from 'react-icons/fi'
 import axios from 'axios'
 
 // API URL - bisa diubah via environment variable saat build
@@ -36,7 +41,22 @@ function App() {
   const [sheetName, setSheetName] = useState('Data')
   const [sheetNameUrl, setSheetNameUrl] = useState('Data')
   const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState(null)
   const toast = useToast()
+
+  // Fetch statistics on component mount and after successful conversion
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/stats`)
+      setStats(response.data)
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0]
@@ -100,6 +120,9 @@ function App() {
         duration: 5000,
         isClosable: true,
       })
+
+      // Refresh statistics
+      fetchStats()
 
       // Reset form
       setFile(null)
@@ -199,6 +222,9 @@ function App() {
         isClosable: true,
       })
 
+      // Refresh statistics
+      fetchStats()
+
       // Reset form
       setUrl('')
       setSheetNameUrl('Data')
@@ -263,6 +289,60 @@ function App() {
               Konversi file JSON atau CSV ke format Excel (.xlsx) dengan mudah
             </Text>
           </VStack>
+
+          {/* Statistics Cards */}
+          {stats && (
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+              <Card>
+                <CardBody>
+                  <Stat>
+                    <HStack>
+                      <Icon as={FiBarChart2} color="blue.500" boxSize={6} />
+                      <StatLabel>Total Konversi</StatLabel>
+                    </HStack>
+                    <StatNumber fontSize="3xl" color="blue.600">
+                      {stats.total_conversions.toLocaleString()}
+                    </StatNumber>
+                    <StatHelpText>Semua waktu</StatHelpText>
+                  </Stat>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody>
+                  <Stat>
+                    <HStack>
+                      <Icon as={FiTrendingUp} color="green.500" boxSize={6} />
+                      <StatLabel>Konversi Hari Ini</StatLabel>
+                    </HStack>
+                    <StatNumber fontSize="3xl" color="green.600">
+                      {stats.today.total.toLocaleString()}
+                    </StatNumber>
+                    <StatHelpText>
+                      Upload: {stats.today.file_upload} | URL: {stats.today.url_conversion}
+                    </StatHelpText>
+                  </Stat>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody>
+                  <Stat>
+                    <HStack>
+                      <Icon as={FiActivity} color="purple.500" boxSize={6} />
+                      <StatLabel>Format Populer</StatLabel>
+                    </HStack>
+                    <StatNumber fontSize="3xl" color="purple.600">
+                      {stats.by_format.json >= stats.by_format.csv ? 'JSON' : 'CSV'}
+                    </StatNumber>
+                    <StatHelpText>
+                      JSON: {stats.by_format.json} | CSV: {stats.by_format.csv}
+                    </StatHelpText>
+                  </Stat>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          )}
 
           {/* Main Card */}
           <Card>

@@ -152,15 +152,35 @@ show_logs() {
 update_app() {
     print_header "Updating Application"
 
+    # Backup database before update
+    print_info "Creating database backup before update..."
+    BACKUP_DIR="./backups"
+    BACKUP_FILE="db-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+    mkdir -p "$BACKUP_DIR"
+
+    # Backup database from volume
+    docker run --rm \
+        -v konversi-data_backend-data:/data \
+        -v "$(pwd)/$BACKUP_DIR":/backup \
+        alpine tar czf "/backup/$BACKUP_FILE" -C /data . 2>/dev/null || true
+
+    if [ -f "$BACKUP_DIR/$BACKUP_FILE" ]; then
+        print_success "Database backup created: $BACKUP_DIR/$BACKUP_FILE"
+    else
+        print_warning "No database found to backup (this is normal for first deployment)"
+    fi
+
     print_info "Pulling latest code from git..."
     git pull
 
-    print_info "Rebuilding containers..."
+    print_info "Rebuilding containers (preserving data volumes)..."
+    # Don't use --volumes flag to preserve data
     docker-compose down
     docker-compose build --no-cache
     docker-compose up -d
 
     print_success "Application updated successfully!"
+    print_info "Database has been preserved in persistent volume"
 
     sleep 10
     show_status
@@ -175,13 +195,74 @@ backup_data() {
 
     mkdir -p "$BACKUP_DIR"
 
-    print_info "Creating backup..."
-    docker run --rm \
-        -v konversi-data_backend-temp:/data \
-        -v "$(pwd)/$BACKUP_DIR":/backup \
-        alpine tar czf "/backup/$BACKUP_FILE" /data
+    print_info "Creating backup of database and temp files..."
 
-    print_success "Backup created: $BACKUP_DIR/$BACKUP_FILE"
+    # Backup database (persistent data)
+    docker run --rm \
+        -v konversi-data_backend-data:/data \
+        -v "$(pwd)/$BACKUP_DIR":/backup \
+        alpine tar czf "/backup/db-$BACKUP_FILE" -C /data . 2>/dev/null || true
+
+    # Backup temp files
+    docker run --rm \
+        -v konversi-data_backend-temp:/temp \
+        -v "$(pwd)/$BACKUP_DIR":/backup \
+        alpine tar czf "/backup/temp-$BACKUP_FILE" -C /temp . 2>/dev/null || true
+
+    print_success "Backups created in: $BACKUP_DIR/"
+    ls -lh "$BACKUP_DIR"/*"$BACKUP_FILE" 2>/dev/null || print_warning "No files to backup"
+}
+
+# Restore database from backup
+restore_data() {
+    print_header "Restoring Database"
+
+    BACKUP_DIR="./backups"
+
+    if [ ! -d "$BACKUP_DIR" ]; then
+        print_error "Backup directory not found: $BACKUP_DIR"
+        exit 1
+    fi
+
+    # List available backups
+    print_info "Available database backups:"
+    ls -lh "$BACKUP_DIR"/db-backup-*.tar.gz 2>/dev/null || {
+        print_error "No database backups found"
+        exit 1
+    }
+
+    echo ""
+    read -p "Enter backup filename to restore (e.g., db-backup-20250120-143000.tar.gz): " BACKUP_FILE
+
+    if [ ! -f "$BACKUP_DIR/$BACKUP_FILE" ]; then
+        print_error "Backup file not found: $BACKUP_DIR/$BACKUP_FILE"
+        exit 1
+    fi
+
+    print_warning "This will REPLACE the current database!"
+    read -p "Are you sure? (yes/no): " CONFIRM
+
+    if [ "$CONFIRM" != "yes" ]; then
+        print_info "Restore cancelled"
+        exit 0
+    fi
+
+    print_info "Stopping application..."
+    docker-compose down
+
+    print_info "Restoring database from: $BACKUP_FILE"
+    docker run --rm \
+        -v konversi-data_backend-data:/data \
+        -v "$(pwd)/$BACKUP_DIR":/backup \
+        alpine sh -c "rm -rf /data/* && tar xzf /backup/$BACKUP_FILE -C /data"
+
+    print_success "Database restored successfully!"
+
+    print_info "Starting application..."
+    docker-compose up -d
+
+    sleep 10
+    show_status
 }
 
 # Show usage
@@ -194,13 +275,16 @@ show_usage() {
     echo "  restart   - Restart the application"
     echo "  status    - Show application status"
     echo "  logs      - Show application logs"
-    echo "  update    - Update application from git and rebuild"
-    echo "  backup    - Backup application data"
+    echo "  update    - Update application from git and rebuild (preserves database)"
+    echo "  backup    - Backup application data and database"
+    echo "  restore   - Restore database from backup"
     echo ""
     echo "Examples:"
     echo "  ./deploy.sh start"
     echo "  ./deploy.sh logs"
-    echo "  ./deploy.sh restart"
+    echo "  ./deploy.sh update    # Updates code but keeps database"
+    echo "  ./deploy.sh backup    # Backup database before major changes"
+    echo "  ./deploy.sh restore   # Restore database from backup"
 }
 
 # Main
@@ -228,6 +312,9 @@ main() {
             ;;
         backup)
             backup_data
+            ;;
+        restore)
+            restore_data
             ;;
         *)
             show_usage

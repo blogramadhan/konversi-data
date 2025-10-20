@@ -17,6 +17,18 @@ temp_uploads/
 temp_outputs/
 *.log
 
+# Database files and persistent data folder
+data/
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+conversion_stats.db
+backend/conversion_stats.db
+
+# Backups
+backups/
+
 # Test output files
 test_*.xlsx
 test_*.py

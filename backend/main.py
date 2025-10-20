@@ -11,6 +11,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 import requests
+import sqlite3
+from datetime import datetime
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -38,6 +40,86 @@ UPLOAD_DIR = Path("temp_uploads")
 OUTPUT_DIR = Path("temp_outputs")
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+# Directory untuk persistent data (database)
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
+
+# Database untuk counter - simpan di folder data yang persistent
+DB_PATH = DATA_DIR / "conversion_stats.db"
+
+
+# Initialize database
+def init_db():
+    """Initialize SQLite database for conversion statistics"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversion_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversion_type TEXT NOT NULL,
+            file_format TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            success BOOLEAN DEFAULT TRUE
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_stats (
+            date TEXT PRIMARY KEY,
+            total_conversions INTEGER DEFAULT 0,
+            file_upload_count INTEGER DEFAULT 0,
+            url_conversion_count INTEGER DEFAULT 0
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+# Increment conversion counter
+def increment_counter(conversion_type: str, file_format: str):
+    """Increment conversion counter in database"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        # Insert conversion record
+        cursor.execute("""
+            INSERT INTO conversion_stats (conversion_type, file_format)
+            VALUES (?, ?)
+        """, (conversion_type, file_format))
+
+        # Update daily stats
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        # Check if today's record exists
+        cursor.execute("SELECT date FROM daily_stats WHERE date = ?", (today,))
+        if cursor.fetchone():
+            # Update existing record
+            cursor.execute(f"""
+                UPDATE daily_stats
+                SET total_conversions = total_conversions + 1,
+                    {conversion_type}_count = {conversion_type}_count + 1
+                WHERE date = ?
+            """, (today,))
+        else:
+            # Create new record
+            cursor.execute(f"""
+                INSERT INTO daily_stats (date, total_conversions, {conversion_type}_count)
+                VALUES (?, 1, 1)
+            """, (today,))
+
+        conn.commit()
+        conn.close()
+        logger.info(f"Counter incremented: {conversion_type} - {file_format}")
+    except Exception as e:
+        logger.error(f"Failed to increment counter: {e}")
+
+
+# Initialize database on startup
+init_db()
 
 
 # Pydantic model untuk request URL
@@ -130,6 +212,9 @@ async def convert_to_excel(
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
         logger.info("Conversion successful")
+
+        # Increment counter for successful conversion
+        increment_counter("file_upload", file_ext)
 
         # Return file Excel
         return FileResponse(
@@ -339,6 +424,9 @@ async def convert_url_to_excel(request: ConvertURLRequest):
 
         logger.info("Conversion successful")
 
+        # Increment counter for successful conversion
+        increment_counter("url_conversion", file_ext)
+
         # Return file Excel
         return FileResponse(
             path=output_path,
@@ -372,6 +460,83 @@ async def convert_url_to_excel(request: ConvertURLRequest):
                 logger.info("Cleanup downloaded file successful")
             except Exception as e:
                 logger.warning(f"Failed to cleanup downloaded file: {e}")
+
+
+@app.get("/stats")
+async def get_conversion_stats():
+    """Get conversion statistics"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        # Get total conversions
+        cursor.execute("SELECT COUNT(*) FROM conversion_stats")
+        total_conversions = cursor.fetchone()[0]
+
+        # Get conversions by type
+        cursor.execute("""
+            SELECT conversion_type, COUNT(*) as count
+            FROM conversion_stats
+            GROUP BY conversion_type
+        """)
+        by_type = {row[0]: row[1] for row in cursor.fetchall()}
+
+        # Get conversions by format
+        cursor.execute("""
+            SELECT file_format, COUNT(*) as count
+            FROM conversion_stats
+            GROUP BY file_format
+        """)
+        by_format = {row[0]: row[1] for row in cursor.fetchall()}
+
+        # Get today's stats
+        today = datetime.now().strftime("%Y-%m-%d")
+        cursor.execute("""
+            SELECT total_conversions, file_upload_count, url_conversion_count
+            FROM daily_stats
+            WHERE date = ?
+        """, (today,))
+        today_stats = cursor.fetchone()
+
+        # Get last 7 days stats
+        cursor.execute("""
+            SELECT date, total_conversions, file_upload_count, url_conversion_count
+            FROM daily_stats
+            ORDER BY date DESC
+            LIMIT 7
+        """)
+        weekly_stats = [
+            {
+                "date": row[0],
+                "total": row[1],
+                "file_upload": row[2],
+                "url_conversion": row[3]
+            }
+            for row in cursor.fetchall()
+        ]
+
+        conn.close()
+
+        return {
+            "total_conversions": total_conversions,
+            "by_type": {
+                "file_upload": by_type.get("file_upload", 0),
+                "url_conversion": by_type.get("url_conversion", 0)
+            },
+            "by_format": {
+                "json": by_format.get("json", 0),
+                "csv": by_format.get("csv", 0)
+            },
+            "today": {
+                "total": today_stats[0] if today_stats else 0,
+                "file_upload": today_stats[1] if today_stats else 0,
+                "url_conversion": today_stats[2] if today_stats else 0
+            },
+            "last_7_days": weekly_stats
+        }
+    except Exception as e:
+        logger.error(f"Failed to get stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
 
 
 @app.get("/health")
