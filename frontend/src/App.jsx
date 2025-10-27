@@ -28,6 +28,8 @@ import {
   StatNumber,
   StatHelpText,
   SimpleGrid,
+  Skeleton,
+  SkeletonText,
 } from '@chakra-ui/react'
 import { FiFile, FiDownload, FiHeart, FiLink, FiUpload, FiTrendingUp, FiBarChart2, FiActivity } from 'react-icons/fi'
 import axios from 'axios'
@@ -42,15 +44,38 @@ function App() {
   const [sheetNameUrl, setSheetNameUrl] = useState('Data')
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState(null)
+  const [statsLoading, setStatsLoading] = useState(true)
   const toast = useToast()
 
   // Fetch statistics on component mount and after successful conversion
   const fetchStats = async () => {
     try {
+      setStatsLoading(true)
       const response = await axios.get(`${API_URL}/stats`)
       setStats(response.data)
+      console.log('Stats loaded:', response.data)
     } catch (error) {
       console.error('Failed to fetch stats:', error)
+      // Set default stats if API fails
+      setStats({
+        total_conversions: 0,
+        by_type: {
+          file_upload: 0,
+          url_conversion: 0
+        },
+        by_format: {
+          json: 0,
+          csv: 0
+        },
+        today: {
+          total: 0,
+          file_upload: 0,
+          url_conversion: 0
+        },
+        last_7_days: []
+      })
+    } finally {
+      setStatsLoading(false)
     }
   }
 
@@ -277,83 +302,99 @@ function App() {
   }
 
   return (
-    <Box minH="100vh" bg="gray.50" py={10}>
+    <Box minH="100vh" bg="gray.50" py={6}>
       <Container maxW="container.md">
-        <VStack spacing={8} align="stretch">
+        <VStack spacing={5} align="stretch">
           {/* Header */}
-          <VStack spacing={2}>
-            <Heading size="xl" color="blue.600">
+          <VStack spacing={1}>
+            <Heading size="lg" color="blue.600">
               Konversi Data ke Excel
             </Heading>
-            <Text color="gray.600" textAlign="center">
+            <Text fontSize="sm" color="gray.600" textAlign="center">
               Konversi file JSON atau CSV ke format Excel (.xlsx) dengan mudah
             </Text>
           </VStack>
 
           {/* Statistics Cards */}
-          {stats && (
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-              <Card>
-                <CardBody>
-                  <Stat>
-                    <HStack>
-                      <Icon as={FiBarChart2} color="blue.500" boxSize={6} />
-                      <StatLabel>Total Konversi</StatLabel>
-                    </HStack>
-                    <StatNumber fontSize="3xl" color="blue.600">
-                      {stats.total_conversions.toLocaleString()}
-                    </StatNumber>
-                    <StatHelpText>Semua waktu</StatHelpText>
-                  </Stat>
-                </CardBody>
-              </Card>
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
+            {statsLoading ? (
+              // Loading skeletons
+              <>
+                {[1, 2, 3].map((i) => (
+                  <Card size="sm" key={i}>
+                    <CardBody py={3}>
+                      <Skeleton height="16px" width="120px" mb={2} />
+                      <Skeleton height="32px" width="80px" mb={1} />
+                      <Skeleton height="12px" width="150px" />
+                    </CardBody>
+                  </Card>
+                ))}
+              </>
+            ) : stats ? (
+              // Actual stats
+              <>
+                <Card size="sm">
+                  <CardBody py={3}>
+                    <Stat>
+                      <HStack spacing={2} mb={1}>
+                        <Icon as={FiBarChart2} color="blue.500" boxSize={4} />
+                        <StatLabel fontSize="xs">Total Konversi</StatLabel>
+                      </HStack>
+                      <StatNumber fontSize="2xl" color="blue.600">
+                        {stats.total_conversions.toLocaleString()}
+                      </StatNumber>
+                      <StatHelpText fontSize="xs" mt={0}>Semua waktu</StatHelpText>
+                    </Stat>
+                  </CardBody>
+                </Card>
 
-              <Card>
-                <CardBody>
-                  <Stat>
-                    <HStack>
-                      <Icon as={FiTrendingUp} color="green.500" boxSize={6} />
-                      <StatLabel>Konversi Hari Ini</StatLabel>
-                    </HStack>
-                    <StatNumber fontSize="3xl" color="green.600">
-                      {stats.today.total.toLocaleString()}
-                    </StatNumber>
-                    <StatHelpText>
-                      Upload: {stats.today.file_upload} | URL: {stats.today.url_conversion}
-                    </StatHelpText>
-                  </Stat>
-                </CardBody>
-              </Card>
+                <Card size="sm">
+                  <CardBody py={3}>
+                    <Stat>
+                      <HStack spacing={2} mb={1}>
+                        <Icon as={FiTrendingUp} color="green.500" boxSize={4} />
+                        <StatLabel fontSize="xs">Hari Ini</StatLabel>
+                      </HStack>
+                      <StatNumber fontSize="2xl" color="green.600">
+                        {stats.today.total.toLocaleString()}
+                      </StatNumber>
+                      <StatHelpText fontSize="xs" mt={0}>
+                        File: {stats.today.file_upload} | URL: {stats.today.url_conversion}
+                      </StatHelpText>
+                    </Stat>
+                  </CardBody>
+                </Card>
 
-              <Card>
-                <CardBody>
-                  <Stat>
-                    <HStack>
-                      <Icon as={FiActivity} color="purple.500" boxSize={6} />
-                      <StatLabel>Format Populer</StatLabel>
-                    </HStack>
-                    <StatNumber fontSize="3xl" color="purple.600">
-                      {stats.by_format.json >= stats.by_format.csv ? 'JSON' : 'CSV'}
-                    </StatNumber>
-                    <StatHelpText>
-                      JSON: {stats.by_format.json} | CSV: {stats.by_format.csv}
-                    </StatHelpText>
-                  </Stat>
-                </CardBody>
-              </Card>
-            </SimpleGrid>
-          )}
+                <Card size="sm">
+                  <CardBody py={3}>
+                    <Stat>
+                      <HStack spacing={2} mb={1}>
+                        <Icon as={FiActivity} color="purple.500" boxSize={4} />
+                        <StatLabel fontSize="xs">Format Populer</StatLabel>
+                      </HStack>
+                      <StatNumber fontSize="2xl" color="purple.600">
+                        {stats.by_format.json >= stats.by_format.csv ? 'JSON' : 'CSV'}
+                      </StatNumber>
+                      <StatHelpText fontSize="xs" mt={0}>
+                        JSON: {stats.by_format.json} | CSV: {stats.by_format.csv}
+                      </StatHelpText>
+                    </Stat>
+                  </CardBody>
+                </Card>
+              </>
+            ) : null}
+          </SimpleGrid>
 
           {/* Main Card */}
           <Card>
-            <CardBody>
+            <CardBody p={4}>
               <Tabs colorScheme="blue" isFitted>
-                <TabList mb={6}>
-                  <Tab>
+                <TabList mb={4}>
+                  <Tab fontSize="sm">
                     <Icon as={FiUpload} mr={2} />
                     Upload File
                   </Tab>
-                  <Tab>
+                  <Tab fontSize="sm">
                     <Icon as={FiLink} mr={2} />
                     Dari URL
                   </Tab>
@@ -363,39 +404,40 @@ function App() {
                   {/* Tab 1: Upload File */}
                   <TabPanel p={0}>
                     <form onSubmit={handleSubmit}>
-                      <VStack spacing={6} align="stretch">
+                      <VStack spacing={4} align="stretch">
                         {/* File Upload */}
                         <FormControl isRequired>
-                          <FormLabel>Upload File</FormLabel>
+                          <FormLabel fontSize="sm">Upload File</FormLabel>
                           <Input
                             type="file"
                             accept=".json,.csv"
                             onChange={handleFileChange}
                             p={1}
                             disabled={loading}
+                            size="sm"
                           />
-                          <FormHelperText>
-                            Format yang didukung: .json dan .csv
+                          <FormHelperText fontSize="xs">
+                            Format: .json dan .csv
                           </FormHelperText>
                         </FormControl>
 
                         {/* Selected File Info */}
                         {file && (
                           <HStack
-                            p={4}
+                            p={3}
                             bg="blue.50"
                             borderRadius="md"
                             borderWidth={1}
                             borderColor="blue.200"
                           >
-                            <Icon as={FiFile} color="blue.500" boxSize={5} />
+                            <Icon as={FiFile} color="blue.500" boxSize={4} />
                             <VStack align="start" spacing={0} flex={1}>
-                              <Text fontWeight="medium">{file.name}</Text>
-                              <Text fontSize="sm" color="gray.600">
+                              <Text fontWeight="medium" fontSize="sm">{file.name}</Text>
+                              <Text fontSize="xs" color="gray.600">
                                 {(file.size / 1024).toFixed(2)} KB
                               </Text>
                             </VStack>
-                            <Badge colorScheme="blue">
+                            <Badge colorScheme="blue" fontSize="xs">
                               {file.name.split('.').pop().toUpperCase()}
                             </Badge>
                           </HStack>
@@ -403,22 +445,23 @@ function App() {
 
                         {/* Sheet Name */}
                         <FormControl>
-                          <FormLabel>Nama Sheet Excel</FormLabel>
+                          <FormLabel fontSize="sm">Nama Sheet Excel</FormLabel>
                           <Input
                             value={sheetName}
                             onChange={(e) => setSheetName(e.target.value)}
                             placeholder="Data"
                             disabled={loading}
+                            size="sm"
                           />
-                          <FormHelperText>
-                            Nama sheet yang akan dibuat di file Excel
+                          <FormHelperText fontSize="xs">
+                            Nama sheet di file Excel
                           </FormHelperText>
                         </FormControl>
 
                         {/* Progress */}
                         {loading && (
                           <Box>
-                            <Text mb={2} fontSize="sm" color="gray.600">
+                            <Text mb={1} fontSize="xs" color="gray.600">
                               Sedang memproses...
                             </Text>
                             <Progress size="sm" isIndeterminate colorScheme="blue" />
@@ -426,7 +469,7 @@ function App() {
                         )}
 
                         {/* Buttons */}
-                        <HStack spacing={4}>
+                        <HStack spacing={3}>
                           <Button
                             type="submit"
                             colorScheme="blue"
@@ -434,6 +477,7 @@ function App() {
                             isLoading={loading}
                             loadingText="Konversi..."
                             flex={1}
+                            size="sm"
                           >
                             Konversi ke Excel
                           </Button>
@@ -441,6 +485,7 @@ function App() {
                             variant="outline"
                             onClick={handleReset}
                             disabled={loading}
+                            size="sm"
                           >
                             Reset
                           </Button>
@@ -452,34 +497,35 @@ function App() {
                   {/* Tab 2: Dari URL */}
                   <TabPanel p={0}>
                     <form onSubmit={handleUrlSubmit}>
-                      <VStack spacing={6} align="stretch">
+                      <VStack spacing={4} align="stretch">
                         {/* URL Input */}
                         <FormControl isRequired>
-                          <FormLabel>URL File JSON/CSV</FormLabel>
+                          <FormLabel fontSize="sm">URL File JSON/CSV</FormLabel>
                           <Input
                             type="url"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             placeholder="https://example.com/data.json"
                             disabled={loading}
+                            size="sm"
                           />
-                          <FormHelperText>
-                            Masukkan URL lengkap file JSON atau CSV
+                          <FormHelperText fontSize="xs">
+                            URL lengkap file JSON atau CSV
                           </FormHelperText>
                         </FormControl>
 
                         {/* URL Info */}
                         {url && (
                           <HStack
-                            p={4}
+                            p={3}
                             bg="green.50"
                             borderRadius="md"
                             borderWidth={1}
                             borderColor="green.200"
                           >
-                            <Icon as={FiLink} color="green.500" boxSize={5} />
+                            <Icon as={FiLink} color="green.500" boxSize={4} />
                             <VStack align="start" spacing={0} flex={1}>
-                              <Text fontWeight="medium" fontSize="sm" noOfLines={1}>
+                              <Text fontWeight="medium" fontSize="xs" noOfLines={1}>
                                 {url}
                               </Text>
                               <Text fontSize="xs" color="gray.600">
@@ -491,22 +537,23 @@ function App() {
 
                         {/* Sheet Name */}
                         <FormControl>
-                          <FormLabel>Nama Sheet Excel</FormLabel>
+                          <FormLabel fontSize="sm">Nama Sheet Excel</FormLabel>
                           <Input
                             value={sheetNameUrl}
                             onChange={(e) => setSheetNameUrl(e.target.value)}
                             placeholder="Data"
                             disabled={loading}
+                            size="sm"
                           />
-                          <FormHelperText>
-                            Nama sheet yang akan dibuat di file Excel
+                          <FormHelperText fontSize="xs">
+                            Nama sheet di file Excel
                           </FormHelperText>
                         </FormControl>
 
                         {/* Progress */}
                         {loading && (
                           <Box>
-                            <Text mb={2} fontSize="sm" color="gray.600">
+                            <Text mb={1} fontSize="xs" color="gray.600">
                               Sedang mengunduh dan memproses...
                             </Text>
                             <Progress size="sm" isIndeterminate colorScheme="blue" />
@@ -514,7 +561,7 @@ function App() {
                         )}
 
                         {/* Buttons */}
-                        <HStack spacing={4}>
+                        <HStack spacing={3}>
                           <Button
                             type="submit"
                             colorScheme="blue"
@@ -522,6 +569,7 @@ function App() {
                             isLoading={loading}
                             loadingText="Konversi..."
                             flex={1}
+                            size="sm"
                           >
                             Konversi ke Excel
                           </Button>
@@ -529,6 +577,7 @@ function App() {
                             variant="outline"
                             onClick={handleUrlReset}
                             disabled={loading}
+                            size="sm"
                           >
                             Reset
                           </Button>
@@ -542,50 +591,32 @@ function App() {
           </Card>
 
           {/* Info */}
-          <Card bg="blue.50" borderColor="blue.200">
-            <CardBody>
-              <VStack align="start" spacing={3}>
-                <Heading size="sm" color="blue.700">
+          <Card bg="blue.50" borderColor="blue.200" size="sm">
+            <CardBody p={4}>
+              <VStack align="start" spacing={2}>
+                <Heading size="xs" color="blue.700">
                   Cara Penggunaan:
                 </Heading>
 
                 <Box>
-                  <Text fontSize="sm" fontWeight="semibold" color="blue.600" mb={1}>
+                  <Text fontSize="xs" fontWeight="semibold" color="blue.600" mb={0.5}>
                     Opsi 1: Upload File
                   </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    1. Pilih tab "Upload File"
-                  </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    2. Pilih file JSON atau CSV dari komputer Anda
-                  </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    3. Atur nama sheet (opsional)
-                  </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    4. Klik "Konversi ke Excel"
+                  <Text fontSize="xs" color="gray.700">
+                    1. Pilih tab "Upload File" → 2. Pilih file JSON/CSV → 3. Atur nama sheet → 4. Klik "Konversi"
                   </Text>
                 </Box>
 
                 <Box>
-                  <Text fontSize="sm" fontWeight="semibold" color="blue.600" mb={1}>
+                  <Text fontSize="xs" fontWeight="semibold" color="blue.600" mb={0.5}>
                     Opsi 2: Dari URL
                   </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    1. Pilih tab "Dari URL"
-                  </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    2. Masukkan URL file JSON atau CSV
-                  </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    3. Atur nama sheet (opsional)
-                  </Text>
-                  <Text fontSize="sm" color="gray.700">
-                    4. Klik "Konversi ke Excel"
+                  <Text fontSize="xs" color="gray.700">
+                    1. Pilih tab "Dari URL" → 2. Masukkan URL file → 3. Atur nama sheet → 4. Klik "Konversi"
                   </Text>
                 </Box>
 
-                <Text fontSize="xs" color="gray.600" fontStyle="italic" pt={2}>
+                <Text fontSize="xs" color="gray.600" fontStyle="italic">
                   * File Excel akan otomatis terunduh setelah konversi selesai
                 </Text>
               </VStack>
@@ -596,11 +627,11 @@ function App() {
           <Flex
             justifyContent="center"
             alignItems="center"
-            py={6}
+            py={4}
             borderTop="1px"
             borderColor="gray.200"
           >
-            <Text fontSize="sm" color="gray.600" textAlign="center">
+            <Text fontSize="xs" color="gray.600" textAlign="center">
               © 2025, Dibuat dengan{' '}
               <Icon as={FiHeart} color="red.500" display="inline" mb="-2px" />
               {' '}oleh <Text as="span" fontWeight="semibold" color="gray.700">Kurnia Ramadhan</Text>
