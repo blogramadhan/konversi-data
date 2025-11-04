@@ -73,9 +73,6 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=${FRONTEND_PORT:-3030}
       - HOST=${FRONTEND_HOST:-0.0.0.0}
-    depends_on:
-      - backend-python
-      - backend-rust
     networks:
       - konversi-network
 
