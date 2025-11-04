@@ -116,6 +116,15 @@ check_prerequisites() {
     print_success "Environment variables loaded from .env"
 }
 
+# Detect docker-compose command
+detect_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    else
+        COMPOSE_CMD="docker compose"
+    fi
+}
+
 # Detect or set backend type
 detect_backend() {
     if [ -n "$2" ]; then
@@ -176,6 +185,7 @@ stop_app() {
     print_header "Stopping Application"
 
     detect_backend "$@"
+    detect_compose_cmd
 
     print_info "Stopping containers..."
     $COMPOSE_CMD --profile $BACKEND_TYPE down
@@ -232,6 +242,8 @@ switch_backend() {
         exit 0
     fi
 
+    detect_compose_cmd
+
     print_info "Switching from $CURRENT_BACKEND to $NEW_BACKEND backend..."
 
     # Stop current backend
@@ -256,6 +268,7 @@ show_status() {
     print_header "Application Status"
 
     detect_backend "$@"
+    detect_compose_cmd
 
     # Load and validate environment variables
     load_env
@@ -300,6 +313,7 @@ show_logs() {
     print_header "Application Logs"
 
     detect_backend "$@"
+    detect_compose_cmd
 
     echo "Showing logs for $BACKEND_TYPE backend (Ctrl+C to exit)..."
     echo ""
@@ -311,6 +325,7 @@ update_app() {
     print_header "Updating Application"
 
     detect_backend "$@"
+    detect_compose_cmd
 
     # Backup database before update
     print_info "Creating database backup before update..."
@@ -404,6 +419,7 @@ restore_data() {
     print_header "Restoring Database"
 
     detect_backend "$@"
+    detect_compose_cmd
 
     BACKUP_DIR="./backups"
 
