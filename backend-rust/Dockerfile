@@ -29,14 +29,19 @@ RUN cargo build --release
 # Stage 2: Runtime
 FROM debian:bookworm-slim
 
-# Install runtime dependencies
+# Install runtime dependencies including gosu for user switching
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /app
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copy binary from builder
 COPY --from=builder /app/target/release/konversi-data-backend /app/konversi-data-backend
@@ -49,9 +54,6 @@ RUN mkdir -p temp_uploads temp_outputs data && \
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-# Switch to non-root user
-USER appuser
-
 # Expose port
 EXPOSE 8000
 
@@ -62,5 +64,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
 # Set environment variables
 ENV RUST_LOG=info
 
-# Run the application
+# Use entrypoint to handle permissions before starting app
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Run the application as appuser (entrypoint will handle user switching)
 CMD ["./konversi-data-backend"]
