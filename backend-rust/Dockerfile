@@ -46,6 +46,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Copy binary from builder
 COPY --from=builder /app/target/release/konversi-data-backend /app/konversi-data-backend
 
+# Make binary executable
+RUN chmod +x /app/konversi-data-backend
+
 # Create directories for temporary files and persistent data
 RUN mkdir -p temp_uploads temp_outputs data && \
     chmod 755 temp_uploads temp_outputs data
@@ -68,4 +71,4 @@ ENV RUST_LOG=info
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Run the application as appuser (entrypoint will handle user switching)
-CMD ["./konversi-data-backend"]
+CMD ["/app/konversi-data-backend"]

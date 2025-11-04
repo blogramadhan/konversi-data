@@ -11,11 +11,21 @@ if [ "$(id -u)" = "0" ]; then
     chown -R appuser:appuser /app/data /app/temp_uploads /app/temp_outputs
     chmod -R 755 /app/data /app/temp_uploads /app/temp_outputs
 
-    echo "Starting application as appuser..."
+    # Ensure binary is executable
+    chmod +x /app/konversi-data-backend
+
+    echo "Starting Rust backend as appuser..."
+    echo "Binary: /app/konversi-data-backend"
+    echo "Working directory: $(pwd)"
+    echo "User: appuser"
+
     # Execute the CMD as appuser using gosu
     exec gosu appuser "$@"
 fi
 
 # If not root, just execute the CMD
-echo "Starting application as current user..."
+echo "Starting Rust backend as current user..."
+echo "Binary: /app/konversi-data-backend"
+echo "Working directory: $(pwd)"
+
 exec "$@"
