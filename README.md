@@ -92,7 +92,47 @@ npm install
 
 ## 🚀 Menjalankan Aplikasi
 
-### Backend (Terminal 1)
+### 🔥 Development Mode (Recommended)
+
+Gunakan development script untuk menjalankan backend dan frontend secara otomatis:
+
+```bash
+# Start dengan Python backend
+./dev.sh start python
+
+# Atau start dengan Rust backend
+./dev.sh start rust
+```
+
+Aplikasi akan berjalan di:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Docs** (Python only): http://localhost:8000/docs
+
+**Fitur Development:**
+- ✅ Hot-reload untuk backend Python
+- ✅ HMR (Hot Module Replacement) untuk frontend
+- ✅ Logs tersimpan di `logs/` folder
+- ✅ Mudah switch antara Python dan Rust backend
+
+**Commands:**
+```bash
+./dev.sh start [python|rust]  # Start development
+./dev.sh stop                 # Stop all services
+./dev.sh status               # Check status
+./dev.sh logs                 # View logs
+./dev.sh switch rust          # Switch backend
+```
+
+📚 **Lihat [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) untuk panduan lengkap development.**
+
+---
+
+### 🔧 Manual Mode (Alternative)
+
+Jika ingin menjalankan secara manual:
+
+**Backend (Terminal 1):**
 
 ```bash
 cd backend
@@ -101,7 +141,7 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 Backend akan berjalan di: **http://localhost:8000**
 
-### Frontend (Terminal 2)
+**Frontend (Terminal 2):**
 
 ```bash
 cd frontend
@@ -110,7 +150,7 @@ npm run dev
 
 Frontend akan berjalan di: **http://localhost:5173**
 
-### Buka Aplikasi
+**Buka Aplikasi:**
 
 Akses di browser: **http://localhost:5173**
 
@@ -192,50 +232,77 @@ Jane Smith,25,Bandung
 
 ---
 
-## 🔧 Development
+---
 
-### Backend Development
+## 🐳 Production Deployment
+
+### Prerequisites
+- Docker Engine 20.10+
+- Docker Compose V2 or docker-compose 1.29+
+
+### Quick Start - Production
 
 ```bash
-cd backend
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# 1. Copy dan edit environment configuration
+cp .env.example .env
+nano .env
+
+# 2. Deploy dengan Python backend
+./deploy.sh start python
+
+# Atau deploy dengan Rust backend (recommended for production)
+./deploy.sh start rust
 ```
 
-### Frontend Development
+Aplikasi akan berjalan di:
+- **Frontend**: http://localhost:3030
+- **Backend API**: http://localhost:8000
+
+### Deployment Commands
 
 ```bash
-cd frontend
-npm run dev
+./deploy.sh start [python|rust]  # Start production
+./deploy.sh stop                 # Stop application
+./deploy.sh status               # Check status
+./deploy.sh logs                 # View logs
+./deploy.sh switch rust          # Switch backend
+./deploy.sh backup               # Backup database
+./deploy.sh update               # Update & rebuild
 ```
 
-### Build untuk Production
+### Backend Selection
 
-**Backend:**
-```bash
-cd backend
-uv run uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
-```
+Pilih backend sesuai kebutuhan:
 
-**Frontend:**
-```bash
-cd frontend
-npm run build
-npm run preview
-```
+**Python Backend (FastAPI):**
+- ✅ Easy to debug
+- ✅ Auto API documentation
+- ✅ Quick development
+- ⚠️  Moderate performance
 
-Build output akan ada di `frontend/dist/`
+**Rust Backend (Actix-web):**
+- ✅ 10x faster performance
+- ✅ 3-5x lower memory usage
+- ✅ Production-grade
+- ⚠️  Longer build time
+
+📚 **Lihat [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) untuk panduan lengkap deployment production.**
 
 ---
 
-## 🐳 Docker Deployment
+## 🔧 Development
 
-### Prerequisites
-- Docker
-- Docker Compose
+Lihat section "Menjalankan Aplikasi" di atas untuk development mode.
 
-### Quick Start dengan Docker
+📚 **Untuk panduan lengkap development, baca [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md)**
 
-1. **Build dan jalankan semua services:**
+---
+
+## 🐳 Docker (Manual)
+
+Jika ingin menggunakan Docker Compose secara manual:
+
+**Build dan jalankan:**
 ```bash
 docker-compose up -d
 ```

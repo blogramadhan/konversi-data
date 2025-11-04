@@ -1,17 +1,21 @@
 version: '3.8'
 
 services:
-  backend:
+  # Python Backend (FastAPI)
+  backend-python:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: konversi-data-backend
+    container_name: ${COMPOSE_PROJECT_NAME:-konversi-data}-backend-python
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - HOST=${BACKEND_HOST:-0.0.0.0}
+      - PORT=8000
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3030}
+      - BACKEND_WORKERS=${BACKEND_WORKERS:-4}
     volumes:
       - backend-temp:/app/temp_outputs
       - backend-data:/app/data
@@ -23,30 +27,69 @@ services:
       start_period: 60s
     networks:
       - konversi-network
+    profiles:
+      - python
 
+  # Rust Backend (Actix-web)
+  backend-rust:
+    build:
+      context: ./backend-rust
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-konversi-data}-backend-rust
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3030}
+      - BACKEND_HOST=${BACKEND_HOST:-0.0.0.0}
+      - BACKEND_PORT=8000
+    volumes:
+      - backend-rust-temp:/app/temp_outputs
+      - backend-rust-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - konversi-network
+    profiles:
+      - rust
+
+  # Frontend (Vite + React)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
-    container_name: konversi-data-frontend
+    container_name: ${COMPOSE_PROJECT_NAME:-konversi-data}-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3030}:${FRONTEND_PORT:-3030}"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV:-production}
       - PORT=${FRONTEND_PORT:-3030}
+      - HOST=${FRONTEND_HOST:-0.0.0.0}
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend-python
+      - backend-rust
     networks:
       - konversi-network
 
 volumes:
+  # Python backend volumes
   backend-temp:
     driver: local
   backend-data:
+    driver: local
+
+  # Rust backend volumes
+  backend-rust-temp:
+    driver: local
+  backend-rust-data:
     driver: local
 
 networks:

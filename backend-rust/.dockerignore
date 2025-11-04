@@ -1,0 +1,33 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp_uploads/
+temp_outputs/
+*.tmp
+
+# Database files (will be created at runtime)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Documentation
+README.md
+*.md
+
+# Git
+.git/
+.gitignore

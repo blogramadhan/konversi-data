@@ -1,54 +1,242 @@
+# ===================================
+# Python Backend
+# ===================================
+
 # Python-generated files
 __pycache__/
 *.py[oc]
+*.pyo
+*.pyd
 build/
 dist/
 wheels/
 *.egg-info
+*.egg
 
 # Virtual environments
-.venv
+.venv/
 venv/
+ENV/
+env/
 
-# Backend temporary files
+# Python package manager
+pip-log.txt
+pip-delete-this-directory.txt
+.Python
+
+# ===================================
+# Rust Backend
+# ===================================
+
+# Rust build artifacts
+backend-rust/target/
+backend-rust/Cargo.lock
+**/target/
+**/*.rs.bk
+
+# Rust debug info
+backend-rust/debug/
+backend-rust/*.pdb
+
+# ===================================
+# Frontend
+# ===================================
+
+# Node dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/dist-ssr/
+
+# Build outputs
+frontend/build/
+
+# Logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# ===================================
+# Backend Temporary Files
+# ===================================
+
+# Python backend
 backend/temp_uploads/
 backend/temp_outputs/
+backend/data/
+
+# Rust backend
+backend-rust/temp_uploads/
+backend-rust/temp_outputs/
+backend-rust/data/
+
+# Root level (shared)
 temp_uploads/
 temp_outputs/
 *.log
 
-# Database files and persistent data folder
+# ===================================
+# Database Files
+# ===================================
+
+# SQLite databases
 data/
-backend/data/
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 conversion_stats.db
-backend/conversion_stats.db
+
+# ===================================
+# Test & Output Files
+# ===================================
+
+# Test files
+test_*.xlsx
+test_*.csv
+test_*.json
+test_*.py
+*_output_*.xlsx
+*_converted.xlsx
+
+# Sample data
+sample_data/
+test_data/*.xlsx
+test_data/*.csv
 
 # Backups
 backups/
+*.backup
 
-# Test output files
-test_*.xlsx
-test_*.py
-*_output_*.xlsx
+# ===================================
+# Environment Variables
+# ===================================
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-
-# Environment
 .env
 .env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
 
-# IDE
+# Keep example env files
+!.env.example
+
+# Backend selection marker
+.backend
+
+# Development PIDs
+.dev.pids*
+
+# ===================================
+# IDE & Editor
+# ===================================
+
+# VSCode
 .vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ / PyCharm / RustRover
 .idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Vim
 *.swp
 *.swo
+*~
+.*.swp
+.*.swo
 
-# OS
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ===================================
+# OS Files
+# ===================================
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ===================================
+# Docker
+# ===================================
+
+# Docker volumes
+docker-compose.override.yml
+
+# ===================================
+# Documentation Temporary
+# ===================================
+
+# Generated documentation
+docs/_build/
+docs/.buildinfo
+
+# ===================================
+# Logs & Monitoring
+# ===================================
+
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===================================
+# Miscellaneous
+# ===================================
+
+# Coverage reports
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Certificates
+*.pem
+*.key
+*.crt
+
+# Secrets
+secrets/
+.secrets/

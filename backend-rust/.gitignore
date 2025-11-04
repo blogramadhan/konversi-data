@@ -1,0 +1,43 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# Debug info
+debug/
+*.pdb
+
+# Backup files
+**/*.rs.bk
+
+# Temporary files
+temp_uploads/
+temp_outputs/
+*.tmp
+
+# Database files
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test_*.xlsx
+*_converted.xlsx
+*_output_*.xlsx
