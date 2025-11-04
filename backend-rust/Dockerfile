@@ -24,7 +24,9 @@ RUN mkdir src && \
 COPY src ./src
 
 # Build the application
-RUN cargo build --release
+RUN cargo build --release && \
+    ls -lh /app/target/release/konversi-data-backend && \
+    test -s /app/target/release/konversi-data-backend || (echo "ERROR: Build failed - binary not created" && exit 1)
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
@@ -46,6 +48,11 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copy binary from builder
 COPY --from=builder /app/target/release/konversi-data-backend /app/konversi-data-backend
+
+# Verify binary was copied correctly
+RUN ls -lh /app/konversi-data-backend && \
+    file /app/konversi-data-backend && \
+    test -s /app/konversi-data-backend || (echo "ERROR: Binary is empty or not copied correctly" && exit 1)
 
 # Make binary executable
 RUN chmod +x /app/konversi-data-backend
