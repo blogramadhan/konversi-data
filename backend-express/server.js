@@ -6,7 +6,6 @@ const path = require('path');
 const duckdb = require('duckdb');
 const ExcelJS = require('exceljs');
 const axios = require('axios');
-const Database = require('better-sqlite3');
 require('dotenv').config();
 
 // Setup Express app
@@ -58,37 +57,45 @@ try {
     process.exit(1);
 }
 
-// Database setup
-const DB_PATH = path.join(DATA_DIR, 'conversion_stats.db');
-const db = new Database(DB_PATH);
+// JSON Database setup
+const DB_PATH = path.join(DATA_DIR, 'conversion_stats.json');
 
-// Initialize database
+// Initialize JSON database
 function initDB() {
     try {
-        log.info(`Initializing database at: ${DB_PATH}`);
-
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS conversion_stats (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                conversion_type TEXT NOT NULL,
-                file_format TEXT NOT NULL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                success BOOLEAN DEFAULT 1
-            )
-        `);
-
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS daily_stats (
-                date TEXT PRIMARY KEY,
-                total_conversions INTEGER DEFAULT 0,
-                file_upload_count INTEGER DEFAULT 0,
-                url_conversion_count INTEGER DEFAULT 0
-            )
-        `);
-
-        log.info('Database initialized successfully');
+        if (!fs.existsSync(DB_PATH)) {
+            const initialData = {
+                conversion_stats: [],
+                daily_stats: {}
+            };
+            fs.writeFileSync(DB_PATH, JSON.stringify(initialData, null, 2));
+            log.info(`Initialized JSON database at: ${DB_PATH}`);
+        } else {
+            log.info(`Using existing database at: ${DB_PATH}`);
+        }
     } catch (error) {
         log.error(`Failed to initialize database: ${error.message}`);
+        throw error;
+    }
+}
+
+// Read database
+function readDB() {
+    try {
+        const data = fs.readFileSync(DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        log.error(`Failed to read database: ${error.message}`);
+        return { conversion_stats: [], daily_stats: {} };
+    }
+}
+
+// Write database
+function writeDB(data) {
+    try {
+        fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+    } catch (error) {
+        log.error(`Failed to write database: ${error.message}`);
         throw error;
     }
 }
@@ -96,37 +103,33 @@ function initDB() {
 // Increment counter
 function incrementCounter(conversion_type, file_format) {
     try {
+        const db = readDB();
+
         // Insert conversion record
-        const insertStmt = db.prepare(`
-            INSERT INTO conversion_stats (conversion_type, file_format)
-            VALUES (?, ?)
-        `);
-        insertStmt.run(conversion_type, file_format);
+        db.conversion_stats.push({
+            id: db.conversion_stats.length + 1,
+            conversion_type,
+            file_format,
+            timestamp: new Date().toISOString(),
+            success: true
+        });
 
         // Update daily stats
         const today = new Date().toISOString().split('T')[0];
 
-        // Check if today's record exists
-        const existingRecord = db.prepare('SELECT date FROM daily_stats WHERE date = ?').get(today);
-
-        if (existingRecord) {
-            // Update existing record
-            const updateStmt = db.prepare(`
-                UPDATE daily_stats
-                SET total_conversions = total_conversions + 1,
-                    ${conversion_type}_count = ${conversion_type}_count + 1
-                WHERE date = ?
-            `);
-            updateStmt.run(today);
-        } else {
-            // Create new record
-            const insertStmt = db.prepare(`
-                INSERT INTO daily_stats (date, total_conversions, ${conversion_type}_count)
-                VALUES (?, 1, 1)
-            `);
-            insertStmt.run(today);
+        if (!db.daily_stats[today]) {
+            db.daily_stats[today] = {
+                date: today,
+                total_conversions: 0,
+                file_upload_count: 0,
+                url_conversion_count: 0
+            };
         }
 
+        db.daily_stats[today].total_conversions += 1;
+        db.daily_stats[today][`${conversion_type}_count`] += 1;
+
+        writeDB(db);
         log.info(`Counter incremented: ${conversion_type} - ${file_format}`);
     } catch (error) {
         log.error(`Failed to increment counter: ${error.message}`);
@@ -471,49 +474,35 @@ app.post('/convert-url', async (req, res) => {
 // Stats endpoint
 app.get('/stats', (req, res) => {
     try {
+        const db = readDB();
+
         // Get total conversions
-        const totalResult = db.prepare('SELECT COUNT(*) as count FROM conversion_stats').get();
-        const totalConversions = totalResult.count;
+        const totalConversions = db.conversion_stats.length;
 
         // Get conversions by type
-        const byTypeResults = db.prepare(`
-            SELECT conversion_type, COUNT(*) as count
-            FROM conversion_stats
-            GROUP BY conversion_type
-        `).all();
-
-        const byType = {};
-        byTypeResults.forEach(row => {
-            byType[row.conversion_type] = row.count;
-        });
+        const byType = db.conversion_stats.reduce((acc, stat) => {
+            acc[stat.conversion_type] = (acc[stat.conversion_type] || 0) + 1;
+            return acc;
+        }, {});
 
         // Get conversions by format
-        const byFormatResults = db.prepare(`
-            SELECT file_format, COUNT(*) as count
-            FROM conversion_stats
-            GROUP BY file_format
-        `).all();
-
-        const byFormat = {};
-        byFormatResults.forEach(row => {
-            byFormat[row.file_format] = row.count;
-        });
+        const byFormat = db.conversion_stats.reduce((acc, stat) => {
+            acc[stat.file_format] = (acc[stat.file_format] || 0) + 1;
+            return acc;
+        }, {});
 
         // Get today's stats
         const today = new Date().toISOString().split('T')[0];
-        const todayStats = db.prepare(`
-            SELECT total_conversions, file_upload_count, url_conversion_count
-            FROM daily_stats
-            WHERE date = ?
-        `).get(today);
+        const todayStats = db.daily_stats[today] || {
+            total_conversions: 0,
+            file_upload_count: 0,
+            url_conversion_count: 0
+        };
 
         // Get last 7 days stats
-        const weeklyStats = db.prepare(`
-            SELECT date, total_conversions, file_upload_count, url_conversion_count
-            FROM daily_stats
-            ORDER BY date DESC
-            LIMIT 7
-        `).all();
+        const weeklyStats = Object.values(db.daily_stats)
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .slice(0, 7);
 
         res.json({
             total_conversions: totalConversions,
@@ -526,9 +515,9 @@ app.get('/stats', (req, res) => {
                 csv: byFormat.csv || 0
             },
             today: {
-                total: todayStats ? todayStats.total_conversions : 0,
-                file_upload: todayStats ? todayStats.file_upload_count : 0,
-                url_conversion: todayStats ? todayStats.url_conversion_count : 0
+                total: todayStats.total_conversions,
+                file_upload: todayStats.file_upload_count,
+                url_conversion: todayStats.url_conversion_count
             },
             last_7_days: weeklyStats.map(row => ({
                 date: row.date,
@@ -584,12 +573,10 @@ app.listen(PORT, HOST, () => {
 // Graceful shutdown
 process.on('SIGINT', () => {
     log.info('Shutting down gracefully...');
-    db.close();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     log.info('Shutting down gracefully...');
-    db.close();
     process.exit(0);
 });

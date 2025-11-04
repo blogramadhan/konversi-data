@@ -22,7 +22,6 @@
     "duckdb": "^0.10.0",
     "exceljs": "^4.4.0",
     "axios": "^1.6.5",
-    "better-sqlite3": "^9.3.0",
     "dotenv": "^16.3.1"
   },
   "devDependencies": {
