@@ -35,7 +35,7 @@ services:
   backend-rust:
     build:
       context: ./backend-rust
-      dockerfile: Dockerfile
+      dockerfile: ${RUST_DOCKERFILE:-Dockerfile}
     container_name: ${COMPOSE_PROJECT_NAME:-konversi-data}-backend-rust
     restart: unless-stopped
     ports:

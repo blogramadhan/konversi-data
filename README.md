@@ -4,10 +4,6 @@ Aplikasi web untuk konversi file JSON dan CSV ke format Excel (.xlsx) menggunaka
 
 ---
 
-## 🚀 Quick Start
-
-**Ingin langsung mulai?** Lihat **[QUICK_START.md](QUICK_START.md)** untuk panduan singkat!
-
 ---
 
 ## ✨ Fitur
@@ -57,8 +53,6 @@ konversi-data/
 ├── pyproject.toml           # Python dependencies
 └── README.md
 ```
-
-Lihat **[STRUKTUR_PROJECT.md](STRUKTUR_PROJECT.md)** untuk penjelasan lengkap.
 
 ---
 
@@ -123,8 +117,6 @@ Aplikasi akan berjalan di:
 ./dev.sh logs                 # View logs
 ./dev.sh switch rust          # Switch backend
 ```
-
-📚 **Lihat [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) untuk panduan lengkap development.**
 
 ---
 
@@ -286,15 +278,69 @@ Pilih backend sesuai kebutuhan:
 - ✅ Production-grade
 - ⚠️  Longer build time
 
-📚 **Lihat [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) untuk panduan lengkap deployment production.**
+### 🚨 Production Deployment - Rust Backend
+
+#### Metode 1: Deploy Langsung (Otomatis)
+
+```bash
+# Di server production
+cd ~/code/konversi-data
+./deploy.sh start rust
+```
+
+Script akan **otomatis mendeteksi** jika ada pre-built binary dan menggunakannya!
+
+#### Metode 2: Upload Pre-built Binary (Jika Docker Build Gagal)
+
+Jika deployment menghasilkan binary corrupt (307KB), upload binary dari local:
+
+**Step 1 - Di Local Machine:**
+```bash
+# Build binary
+cd backend-rust
+cargo build --release
+
+# Verify (HARUS 9.3M!)
+ls -lh target/release/konversi-data-backend
+
+# Upload ke server
+scp target/release/konversi-data-backend user@server:~/code/konversi-data/backend-rust/target/release/
+```
+
+**Step 2 - Di Server Production:**
+```bash
+# Deploy (script otomatis detect binary yang sudah di-upload)
+cd ~/code/konversi-data
+./deploy.sh start rust
+```
+
+#### Verifikasi Deployment
+
+```bash
+# Check status
+./deploy.sh status
+
+# Check logs (binary HARUS 9.3M!)
+docker logs konversi-data-backend-rust | head -20
+
+# Test health
+curl http://localhost:8000/health
+```
+
+**Expected**: `{"status":"healthy","version":"1.0.0"}`
+
+**Script `deploy.sh` akan:**
+- ✅ Otomatis detect pre-built binary jika ada
+- ✅ Verifikasi binary size (harus > 5MB)
+- ✅ Gunakan Dockerfile.prebuilt untuk deployment cepat
+- ✅ Fallback ke build from source jika binary tidak ada
+- ✅ Show warning jika binary corrupted
 
 ---
 
 ## 🔧 Development
 
 Lihat section "Menjalankan Aplikasi" di atas untuk development mode.
-
-📚 **Untuk panduan lengkap development, baca [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md)**
 
 ---
 
@@ -394,32 +440,23 @@ VITE_API_URL=http://localhost:8000
 
 ## 🐛 Troubleshooting
 
-Jika mengalami masalah, lihat **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** untuk panduan lengkap.
-
-### Quick Fixes
+### Common Issues
 
 | Error | Solusi |
 |-------|--------|
 | **CORS Error** | Pastikan backend sudah berjalan di port 8000 |
-| **Konversi Gagal** | Lihat **[UNTUK_ERROR_KONVERSI_GAGAL.md](UNTUK_ERROR_KONVERSI_GAGAL.md)** |
 | **File Upload Error** | Pastikan file format .json atau .csv dan tidak kosong |
 | **DuckDB Error** | Pastikan struktur data konsisten (JSON: array of objects, CSV: dengan header) |
+| **Backend Not Responding (Rust)** | Gunakan metode pre-built binary (lihat section Production Deployment) |
+| **Binary 307KB** | Build di local dan upload ke server (binary harus 9.3M) |
 
----
+### Deployment Issues
 
-## 📚 Dokumentasi Lengkap
+**Jika Rust backend di production crash atau restarting:**
 
-| Dokumen | Deskripsi |
-|---------|-----------|
-| 🚀 **[QUICK_START.md](QUICK_START.md)** | Panduan cepat untuk memulai |
-| 🐳 **[DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)** | Panduan lengkap Docker deployment |
-| 🚢 **[SERVER_DEPLOYMENT.md](SERVER_DEPLOYMENT.md)** | Deploy ke server production |
-| 🔧 **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Panduan mengatasi masalah |
-| 🐛 **[DEBUG_CHECKLIST.md](DEBUG_CHECKLIST.md)** | Debug checklist lengkap |
-| 🚨 **[UNTUK_ERROR_KONVERSI_GAGAL.md](UNTUK_ERROR_KONVERSI_GAGAL.md)** | Fix error "Konversi gagal" |
-| 📊 **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** | Ringkasan project dan testing |
-| 📁 **[STRUKTUR_PROJECT.md](STRUKTUR_PROJECT.md)** | Penjelasan struktur project |
-| 📖 **API Docs** | http://localhost:8000/docs |
+1. Check logs: `docker logs konversi-data-backend-rust`
+2. Check binary size in logs (HARUS 9.3M, bukan 307KB!)
+3. Jika binary 307KB → gunakan metode pre-built binary (lihat Production Deployment section)
 
 ---
 

@@ -153,6 +153,50 @@ detect_backend() {
     print_backend_info
 }
 
+# Check and use pre-built binary for Rust backend
+check_rust_binary() {
+    if [ "$BACKEND_TYPE" != "rust" ]; then
+        return
+    fi
+
+    local BINARY_PATH="backend-rust/target/release/konversi-data-backend"
+
+    if [ ! -f "$BINARY_PATH" ]; then
+        print_warning "Pre-built binary not found at: $BINARY_PATH"
+        print_info "Will build from source (may take 5-10 minutes)..."
+        print_info ""
+        print_warning "⚠️  IMPORTANT: If build produces 307KB binary (corrupted):"
+        print_info "   1. Build binary on local machine: cd backend-rust && cargo build --release"
+        print_info "   2. Upload to server: scp target/release/konversi-data-backend user@server:$(pwd)/backend-rust/target/release/"
+        print_info "   3. Re-run: ./deploy.sh start rust"
+        print_info ""
+        export RUST_DOCKERFILE="Dockerfile"
+        return
+    fi
+
+    # Check binary size
+    local SIZE_BYTES=$(stat -f%z "$BINARY_PATH" 2>/dev/null || stat -c%s "$BINARY_PATH" 2>/dev/null)
+    local SIZE_MB=$((SIZE_BYTES / 1024 / 1024))
+    local SIZE_HUMAN=$(ls -lh "$BINARY_PATH" | awk '{print $5}')
+
+    print_info "Found pre-built Rust binary: $SIZE_HUMAN"
+
+    # Binary should be > 5MB (9.3MB is normal)
+    if [ "$SIZE_BYTES" -gt 5000000 ]; then
+        print_success "Using pre-built binary (${SIZE_MB}MB) - FAST deployment!"
+        export RUST_DOCKERFILE="Dockerfile.prebuilt"
+    else
+        print_warning "Binary too small ($SIZE_HUMAN) - likely corrupted"
+        print_warning "Expected: ~9MB, Got: $SIZE_HUMAN"
+        print_info "Will build from source instead..."
+        print_info ""
+        print_warning "⚠️  If build fails with 307KB binary again:"
+        print_info "   Build on local machine and upload (see instructions above)"
+        print_info ""
+        export RUST_DOCKERFILE="Dockerfile"
+    fi
+}
+
 # Start application
 start_app() {
     print_header "Starting Application"
@@ -168,7 +212,14 @@ start_app() {
         read -r
     fi
 
+    # Check for pre-built Rust binary
+    check_rust_binary
+
     print_info "Building and starting containers with $BACKEND_TYPE backend..."
+
+    # Export RUST_DOCKERFILE for docker-compose
+    export RUST_DOCKERFILE
+
     $COMPOSE_CMD --profile $BACKEND_TYPE up -d --build
 
     print_success "Application started successfully with $BACKEND_TYPE backend!"
@@ -178,6 +229,13 @@ start_app() {
 
     # Check status
     show_status
+
+    # Additional check for Rust backend
+    if [ "$BACKEND_TYPE" = "rust" ]; then
+        echo ""
+        print_info "Checking Rust binary in container..."
+        docker exec ${COMPOSE_PROJECT_NAME}-backend-rust ls -lh /app/konversi-data-backend 2>/dev/null || true
+    fi
 }
 
 # Stop application
@@ -252,15 +310,27 @@ switch_backend() {
 
     # Save new backend choice
     echo "$NEW_BACKEND" > .backend
+    BACKEND_TYPE="$NEW_BACKEND"
+
+    # Check for Rust binary if switching to Rust
+    check_rust_binary
 
     # Start new backend
     print_info "Starting $NEW_BACKEND backend..."
+    export RUST_DOCKERFILE
     $COMPOSE_CMD --profile $NEW_BACKEND up -d --build
 
     print_success "Successfully switched to $NEW_BACKEND backend!"
 
     sleep 30
     show_status
+
+    # Additional check for Rust backend
+    if [ "$NEW_BACKEND" = "rust" ]; then
+        echo ""
+        print_info "Checking Rust binary in container..."
+        docker exec ${COMPOSE_PROJECT_NAME}-backend-rust ls -lh /app/konversi-data-backend 2>/dev/null || true
+    fi
 }
 
 # Show status
