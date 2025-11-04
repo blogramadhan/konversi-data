@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script untuk deploy aplikasi Konversi Data ke server
-# Usage: ./deploy.sh [start|stop|restart|status|logs|update|switch] [python|rust]
+# Usage: ./deploy.sh [start|stop|restart|status|logs|update|switch] [python|express]
 
 set -e
 
@@ -35,7 +35,6 @@ validate_env() {
     export FRONTEND_HOST=${FRONTEND_HOST:-0.0.0.0}
     export CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3030,http://localhost:5173}
     export VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
-    export RUST_LOG=${RUST_LOG:-info}
     export NODE_ENV=${NODE_ENV:-production}
     export BACKEND_WORKERS=${BACKEND_WORKERS:-4}
     export COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-konversi-data}
@@ -76,9 +75,7 @@ print_backend_info() {
     echo -e "  CORS Origins:    ${YELLOW}$CORS_ORIGINS${NC}"
     echo -e "  API URL:         ${YELLOW}$VITE_API_URL${NC}"
     echo -e "  Project Name:    ${YELLOW}$COMPOSE_PROJECT_NAME${NC}"
-    if [ "$BACKEND_TYPE" = "rust" ]; then
-        echo -e "  Rust Log Level:  ${YELLOW}$RUST_LOG${NC}"
-    else
+    if [ "$BACKEND_TYPE" = "python" ]; then
         echo -e "  Backend Workers: ${YELLOW}$BACKEND_WORKERS${NC}"
     fi
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -137,8 +134,8 @@ detect_backend() {
         python|py)
             BACKEND_TYPE="python"
             ;;
-        rust|rs)
-            BACKEND_TYPE="rust"
+        express|rs)
+            BACKEND_TYPE="express"
             ;;
         *)
             print_warning "Invalid backend type: $BACKEND_TYPE"
@@ -151,50 +148,6 @@ detect_backend() {
     echo "$BACKEND_TYPE" > .backend
 
     print_backend_info
-}
-
-# Check and use pre-built binary for Rust backend
-check_rust_binary() {
-    if [ "$BACKEND_TYPE" != "rust" ]; then
-        return
-    fi
-
-    local BINARY_PATH="backend-rust/target/release/konversi-data-backend"
-
-    if [ ! -f "$BINARY_PATH" ]; then
-        print_warning "Pre-built binary not found at: $BINARY_PATH"
-        print_info "Will build from source (may take 5-10 minutes)..."
-        print_info ""
-        print_warning "⚠️  IMPORTANT: If build produces 307KB binary (corrupted):"
-        print_info "   1. Build binary on local machine: cd backend-rust && cargo build --release"
-        print_info "   2. Upload to server: scp target/release/konversi-data-backend user@server:$(pwd)/backend-rust/target/release/"
-        print_info "   3. Re-run: ./deploy.sh start rust"
-        print_info ""
-        export RUST_DOCKERFILE="Dockerfile"
-        return
-    fi
-
-    # Check binary size
-    local SIZE_BYTES=$(stat -f%z "$BINARY_PATH" 2>/dev/null || stat -c%s "$BINARY_PATH" 2>/dev/null)
-    local SIZE_MB=$((SIZE_BYTES / 1024 / 1024))
-    local SIZE_HUMAN=$(ls -lh "$BINARY_PATH" | awk '{print $5}')
-
-    print_info "Found pre-built Rust binary: $SIZE_HUMAN"
-
-    # Binary should be > 5MB (9.3MB is normal)
-    if [ "$SIZE_BYTES" -gt 5000000 ]; then
-        print_success "Using pre-built binary (${SIZE_MB}MB) - FAST deployment!"
-        export RUST_DOCKERFILE="Dockerfile.prebuilt"
-    else
-        print_warning "Binary too small ($SIZE_HUMAN) - likely corrupted"
-        print_warning "Expected: ~9MB, Got: $SIZE_HUMAN"
-        print_info "Will build from source instead..."
-        print_info ""
-        print_warning "⚠️  If build fails with 307KB binary again:"
-        print_info "   Build on local machine and upload (see instructions above)"
-        print_info ""
-        export RUST_DOCKERFILE="Dockerfile"
-    fi
 }
 
 # Start application
@@ -212,14 +165,7 @@ start_app() {
         read -r
     fi
 
-    # Check for pre-built Rust binary
-    check_rust_binary
-
     print_info "Building and starting containers with $BACKEND_TYPE backend..."
-
-    # Export RUST_DOCKERFILE for docker-compose
-    export RUST_DOCKERFILE
-
     $COMPOSE_CMD --profile $BACKEND_TYPE up -d --build
 
     print_success "Application started successfully with $BACKEND_TYPE backend!"
@@ -229,13 +175,6 @@ start_app() {
 
     # Check status
     show_status
-
-    # Additional check for Rust backend
-    if [ "$BACKEND_TYPE" = "rust" ]; then
-        echo ""
-        print_info "Checking Rust binary in container..."
-        docker exec ${COMPOSE_PROJECT_NAME}-backend-rust ls -lh /app/konversi-data-backend 2>/dev/null || true
-    fi
 }
 
 # Stop application
@@ -267,8 +206,8 @@ switch_backend() {
     print_header "Switching Backend"
 
     if [ -z "$2" ]; then
-        print_error "Please specify backend type: python or rust"
-        echo "Usage: ./deploy.sh switch [python|rust]"
+        print_error "Please specify backend type: python or express"
+        echo "Usage: ./deploy.sh switch [python|express]"
         exit 1
     fi
 
@@ -278,12 +217,12 @@ switch_backend() {
         python|py)
             NEW_BACKEND="python"
             ;;
-        rust|rs)
-            NEW_BACKEND="rust"
+        express|rs)
+            NEW_BACKEND="express"
             ;;
         *)
             print_error "Invalid backend type: $NEW_BACKEND"
-            echo "Choose: python or rust"
+            echo "Choose: python or express"
             exit 1
             ;;
     esac
@@ -312,25 +251,14 @@ switch_backend() {
     echo "$NEW_BACKEND" > .backend
     BACKEND_TYPE="$NEW_BACKEND"
 
-    # Check for Rust binary if switching to Rust
-    check_rust_binary
-
     # Start new backend
     print_info "Starting $NEW_BACKEND backend..."
-    export RUST_DOCKERFILE
     $COMPOSE_CMD --profile $NEW_BACKEND up -d --build
 
     print_success "Successfully switched to $NEW_BACKEND backend!"
 
     sleep 30
     show_status
-
-    # Additional check for Rust backend
-    if [ "$NEW_BACKEND" = "rust" ]; then
-        echo ""
-        print_info "Checking Rust binary in container..."
-        docker exec ${COMPOSE_PROJECT_NAME}-backend-rust ls -lh /app/konversi-data-backend 2>/dev/null || true
-    fi
 }
 
 # Show status
@@ -411,7 +339,7 @@ update_app() {
     if [ "$BACKEND_TYPE" = "python" ]; then
         VOLUME_NAME="${COMPOSE_PROJECT_NAME}_backend-data"
     else
-        VOLUME_NAME="${COMPOSE_PROJECT_NAME}_backend-rust-data"
+        VOLUME_NAME="${COMPOSE_PROJECT_NAME}_backend-express-data"
     fi
 
     # Backup database from volume
@@ -464,8 +392,8 @@ backup_data() {
         DATA_VOLUME="${COMPOSE_PROJECT_NAME}_backend-data"
         TEMP_VOLUME="${COMPOSE_PROJECT_NAME}_backend-temp"
     else
-        DATA_VOLUME="${COMPOSE_PROJECT_NAME}_backend-rust-data"
-        TEMP_VOLUME="${COMPOSE_PROJECT_NAME}_backend-rust-temp"
+        DATA_VOLUME="${COMPOSE_PROJECT_NAME}_backend-express-data"
+        TEMP_VOLUME="${COMPOSE_PROJECT_NAME}_backend-express-temp"
     fi
 
     # Backup database (persistent data)
@@ -532,7 +460,7 @@ restore_data() {
     if [ "$BACKEND_TYPE" = "python" ]; then
         DATA_VOLUME="${COMPOSE_PROJECT_NAME}_backend-data"
     else
-        DATA_VOLUME="${COMPOSE_PROJECT_NAME}_backend-rust-data"
+        DATA_VOLUME="${COMPOSE_PROJECT_NAME}_backend-express-data"
     fi
 
     print_info "Restoring database from: $BACKUP_FILE"
@@ -555,24 +483,24 @@ show_usage() {
     echo "Usage: ./deploy.sh [COMMAND] [BACKEND_TYPE]"
     echo ""
     echo "Commands:"
-    echo "  start [python|rust]   - Start the application with specified backend"
-    echo "  stop [python|rust]    - Stop the application"
-    echo "  restart [python|rust] - Restart the application"
-    echo "  switch [python|rust]  - Switch between Python and Rust backend"
-    echo "  status [python|rust]  - Show application status"
-    echo "  logs [python|rust]    - Show application logs"
-    echo "  update [python|rust]  - Update application from git and rebuild"
-    echo "  backup [python|rust]  - Backup application data and database"
-    echo "  restore [python|rust] - Restore database from backup"
+    echo "  start [python|express]   - Start the application with specified backend"
+    echo "  stop [python|express]    - Stop the application"
+    echo "  restart [python|express] - Restart the application"
+    echo "  switch [python|express]  - Switch between Python and Express backend"
+    echo "  status [python|express]  - Show application status"
+    echo "  logs [python|express]    - Show application logs"
+    echo "  update [python|express]  - Update application from git and rebuild"
+    echo "  backup [python|express]  - Backup application data and database"
+    echo "  restore [python|express] - Restore database from backup"
     echo ""
     echo "Backend Types:"
     echo "  python (default)      - Use Python/FastAPI backend"
-    echo "  rust                  - Use Rust/Actix-web backend"
+    echo "  express               - Use Express/Node.js backend"
     echo ""
     echo "Examples:"
     echo "  ./deploy.sh start python           # Start with Python backend"
-    echo "  ./deploy.sh start rust             # Start with Rust backend"
-    echo "  ./deploy.sh switch rust            # Switch to Rust backend"
+    echo "  ./deploy.sh start express          # Start with Express backend"
+    echo "  ./deploy.sh switch express         # Switch to Express backend"
     echo "  ./deploy.sh logs                   # Show logs (uses saved backend choice)"
     echo "  ./deploy.sh status                 # Check status"
     echo "  ./deploy.sh backup                 # Backup database"

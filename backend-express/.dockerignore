@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+temp_uploads
+temp_outputs
+data
+.env
+.git
+.gitignore
+README.md

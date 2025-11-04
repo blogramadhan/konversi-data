@@ -31,24 +31,23 @@ services:
     profiles:
       - python
 
-  # Rust Backend (Actix-web)
-  backend-rust:
+  # Express Backend (Node.js)
+  backend-express:
     build:
-      context: ./backend-rust
-      dockerfile: ${RUST_DOCKERFILE:-Dockerfile}
-    container_name: ${COMPOSE_PROJECT_NAME:-konversi-data}-backend-rust
+      context: ./backend-express
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-konversi-data}-backend-express
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
-      - RUST_LOG=${RUST_LOG:-info}
+      - HOST=${BACKEND_HOST:-0.0.0.0}
+      - PORT=8000
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3030}
-      - BACKEND_HOST=${BACKEND_HOST:-0.0.0.0}
-      - BACKEND_PORT=8000
     volumes:
-      - backend-rust-uploads:/app/temp_uploads
-      - backend-rust-temp:/app/temp_outputs
-      - backend-rust-data:/app/data
+      - backend-express-uploads:/app/temp_uploads
+      - backend-express-temp:/app/temp_outputs
+      - backend-express-data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -58,7 +57,7 @@ services:
     networks:
       - konversi-network
     profiles:
-      - rust
+      - express
 
   # Frontend (Vite + React)
   frontend:
@@ -87,12 +86,12 @@ volumes:
   backend-data:
     driver: local
 
-  # Rust backend volumes
-  backend-rust-uploads:
+  # Express backend volumes
+  backend-express-uploads:
     driver: local
-  backend-rust-temp:
+  backend-express-temp:
     driver: local
-  backend-rust-data:
+  backend-express-data:
     driver: local
 
 networks:

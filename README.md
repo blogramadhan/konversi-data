@@ -94,8 +94,8 @@ Gunakan development script untuk menjalankan backend dan frontend secara otomati
 # Start dengan Python backend
 ./dev.sh start python
 
-# Atau start dengan Rust backend
-./dev.sh start rust
+# Atau start dengan Express backend
+./dev.sh start express
 ```
 
 Aplikasi akan berjalan di:
@@ -107,15 +107,15 @@ Aplikasi akan berjalan di:
 - ✅ Hot-reload untuk backend Python
 - ✅ HMR (Hot Module Replacement) untuk frontend
 - ✅ Logs tersimpan di `logs/` folder
-- ✅ Mudah switch antara Python dan Rust backend
+- ✅ Mudah switch antara Python dan Express backend
 
 **Commands:**
 ```bash
-./dev.sh start [python|rust]  # Start development
+./dev.sh start [python|express]  # Start development
 ./dev.sh stop                 # Stop all services
 ./dev.sh status               # Check status
 ./dev.sh logs                 # View logs
-./dev.sh switch rust          # Switch backend
+./dev.sh switch express          # Switch backend
 ```
 
 ---
@@ -242,8 +242,8 @@ nano .env
 # 2. Deploy dengan Python backend
 ./deploy.sh start python
 
-# Atau deploy dengan Rust backend (recommended for production)
-./deploy.sh start rust
+# Atau deploy dengan Express backend (recommended for production)
+./deploy.sh start express
 ```
 
 Aplikasi akan berjalan di:
@@ -253,11 +253,11 @@ Aplikasi akan berjalan di:
 ### Deployment Commands
 
 ```bash
-./deploy.sh start [python|rust]  # Start production
+./deploy.sh start [python|express]  # Start production
 ./deploy.sh stop                 # Stop application
 ./deploy.sh status               # Check status
 ./deploy.sh logs                 # View logs
-./deploy.sh switch rust          # Switch backend
+./deploy.sh switch express          # Switch backend
 ./deploy.sh backup               # Backup database
 ./deploy.sh update               # Update & rebuild
 ```
@@ -272,46 +272,20 @@ Pilih backend sesuai kebutuhan:
 - ✅ Quick development
 - ⚠️  Moderate performance
 
-**Rust Backend (Actix-web):**
-- ✅ 10x faster performance
-- ✅ 3-5x lower memory usage
-- ✅ Production-grade
-- ⚠️  Longer build time
+**Express Backend (Node.js):**
+- ✅ Fast and efficient
+- ✅ Easy to maintain
+- ✅ Production-ready
+- ✅ Quick build time
 
-### 🚨 Production Deployment - Rust Backend
+### 🚨 Production Deployment - Express Backend
 
-#### Metode 1: Deploy Langsung (Otomatis)
+#### Deploy ke Production
 
 ```bash
 # Di server production
 cd ~/code/konversi-data
-./deploy.sh start rust
-```
-
-Script akan **otomatis mendeteksi** jika ada pre-built binary dan menggunakannya!
-
-#### Metode 2: Upload Pre-built Binary (Jika Docker Build Gagal)
-
-Jika deployment menghasilkan binary corrupt (307KB), upload binary dari local:
-
-**Step 1 - Di Local Machine:**
-```bash
-# Build binary
-cd backend-rust
-cargo build --release
-
-# Verify (HARUS 9.3M!)
-ls -lh target/release/konversi-data-backend
-
-# Upload ke server
-scp target/release/konversi-data-backend user@server:~/code/konversi-data/backend-rust/target/release/
-```
-
-**Step 2 - Di Server Production:**
-```bash
-# Deploy (script otomatis detect binary yang sudah di-upload)
-cd ~/code/konversi-data
-./deploy.sh start rust
+./deploy.sh start express
 ```
 
 #### Verifikasi Deployment
@@ -320,21 +294,14 @@ cd ~/code/konversi-data
 # Check status
 ./deploy.sh status
 
-# Check logs (binary HARUS 9.3M!)
-docker logs konversi-data-backend-rust | head -20
+# Check logs
+docker logs konversi-data-backend-express
 
 # Test health
 curl http://localhost:8000/health
 ```
 
 **Expected**: `{"status":"healthy","version":"1.0.0"}`
-
-**Script `deploy.sh` akan:**
-- ✅ Otomatis detect pre-built binary jika ada
-- ✅ Verifikasi binary size (harus > 5MB)
-- ✅ Gunakan Dockerfile.prebuilt untuk deployment cepat
-- ✅ Fallback ke build from source jika binary tidak ada
-- ✅ Show warning jika binary corrupted
 
 ---
 
@@ -447,16 +414,15 @@ VITE_API_URL=http://localhost:8000
 | **CORS Error** | Pastikan backend sudah berjalan di port 8000 |
 | **File Upload Error** | Pastikan file format .json atau .csv dan tidak kosong |
 | **DuckDB Error** | Pastikan struktur data konsisten (JSON: array of objects, CSV: dengan header) |
-| **Backend Not Responding (Rust)** | Gunakan metode pre-built binary (lihat section Production Deployment) |
-| **Binary 307KB** | Build di local dan upload ke server (binary harus 9.3M) |
+| **Backend Not Responding** | Check logs: `docker logs konversi-data-backend-express` atau `docker logs konversi-data-backend-python` |
 
 ### Deployment Issues
 
-**Jika Rust backend di production crash atau restarting:**
+**Jika backend di production crash atau restarting:**
 
-1. Check logs: `docker logs konversi-data-backend-rust`
-2. Check binary size in logs (HARUS 9.3M, bukan 307KB!)
-3. Jika binary 307KB → gunakan metode pre-built binary (lihat Production Deployment section)
+1. Check logs: `docker logs konversi-data-backend-express` atau `docker logs konversi-data-backend-python`
+2. Check container status: `./deploy.sh status`
+3. Restart backend: `./deploy.sh restart [python|express]`
 
 ---
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Development script untuk menjalankan aplikasi secara lokal
-# Usage: ./dev.sh [start|stop|restart|logs] [python|rust]
+# Usage: ./dev.sh [start|stop|restart|logs] [python|express]
 
 set -e
 
@@ -59,9 +59,6 @@ print_dev_info() {
     echo -e "  Backend Port:    ${YELLOW}${BACKEND_PORT:-8000}${NC}"
     echo -e "  Frontend Port:   ${YELLOW}${FRONTEND_PORT:-5173}${NC} (Vite dev server)"
     echo -e "  CORS Origins:    ${YELLOW}${CORS_ORIGINS}${NC}"
-    if [ "$BACKEND_TYPE" = "rust" ]; then
-        echo -e "  Rust Log Level:  ${YELLOW}${RUST_LOG:-debug}${NC}"
-    fi
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
@@ -77,8 +74,8 @@ detect_backend() {
         python|py)
             BACKEND_TYPE="python"
             ;;
-        rust|rs)
-            BACKEND_TYPE="rust"
+        express|rs)
+            BACKEND_TYPE="express"
             ;;
         *)
             print_warning "Invalid backend type: $BACKEND_TYPE"
@@ -105,19 +102,18 @@ check_prerequisites() {
         fi
         print_success "Python installed: $(python3 --version)"
     else
-        if ! command -v cargo &> /dev/null; then
-            print_error "Rust/Cargo is not installed"
-            print_info "Install from: https://rustup.rs/"
+        if ! command -v node &> /dev/null; then
+            print_error "Node.js is not installed"
+            print_info "Install from: https://nodejs.org/"
             exit 1
         fi
-        print_success "Rust installed: $(rustc --version)"
+        print_success "Node.js installed: $(node --version)"
     fi
 
     if ! command -v npm &> /dev/null; then
-        print_error "Node.js/npm is not installed"
+        print_error "npm is not installed"
         exit 1
     fi
-    print_success "Node.js installed: $(node --version)"
     print_success "npm installed: $(npm --version)"
 }
 
@@ -149,27 +145,27 @@ start_python_backend() {
     print_success "Python backend started (PID: $BACKEND_PID)"
 }
 
-# Start Rust backend
-start_rust_backend() {
-    print_info "Starting Rust backend..."
+# Start Express backend
+start_express_backend() {
+    print_info "Starting Express backend..."
 
-    cd backend-rust
+    cd backend-express
 
-    # Check if release binary exists, otherwise build
-    if [ ! -f "target/release/konversi-data-backend" ]; then
-        print_info "Building Rust backend (release mode, this may take a while)..."
-        cargo build --release
+    # Install dependencies if needed
+    if [ ! -d "node_modules" ]; then
+        print_info "Installing backend dependencies..."
+        npm install
     fi
 
     # Start backend in background
-    print_info "Starting Actix-web server on port ${BACKEND_PORT:-8000}..."
-    RUST_LOG=${RUST_LOG:-debug} ./target/release/konversi-data-backend > ../logs/backend.log 2>&1 &
+    print_info "Starting Express server on port ${BACKEND_PORT:-8000}..."
+    PORT=${BACKEND_PORT:-8000} HOST=${BACKEND_HOST:-0.0.0.0} CORS_ORIGINS="${CORS_ORIGINS}" node server.js > ../logs/backend.log 2>&1 &
     BACKEND_PID=$!
 
     cd ..
 
     echo $BACKEND_PID > "$PIDS_FILE.backend"
-    print_success "Rust backend started (PID: $BACKEND_PID)"
+    print_success "Express backend started (PID: $BACKEND_PID)"
 }
 
 # Start frontend
@@ -219,7 +215,7 @@ start_app() {
     if [ "$BACKEND_TYPE" = "python" ]; then
         start_python_backend
     else
-        start_rust_backend
+        start_express_backend
     fi
 
     # Wait a bit for backend to start
@@ -377,8 +373,8 @@ switch_backend() {
     print_header "Switching Backend"
 
     if [ -z "$2" ]; then
-        print_error "Please specify backend type: python or rust"
-        echo "Usage: ./dev.sh switch [python|rust]"
+        print_error "Please specify backend type: python or express"
+        echo "Usage: ./dev.sh switch [python|express]"
         exit 1
     fi
 
@@ -388,12 +384,12 @@ switch_backend() {
         python|py)
             NEW_BACKEND="python"
             ;;
-        rust|rs)
-            NEW_BACKEND="rust"
+        express|rs)
+            NEW_BACKEND="express"
             ;;
         *)
             print_error "Invalid backend type: $NEW_BACKEND"
-            echo "Choose: python or rust"
+            echo "Choose: python or express"
             exit 1
             ;;
     esac
@@ -425,19 +421,19 @@ switch_backend() {
     start_app
 }
 
-# Build backend (useful for Rust)
+# Build backend (useful for Express)
 build_backend() {
     print_header "Building Backend"
 
     detect_backend "$@"
 
-    if [ "$BACKEND_TYPE" = "rust" ]; then
-        print_info "Building Rust backend in release mode..."
-        cd backend-rust
-        cargo build --release
+    if [ "$BACKEND_TYPE" = "express" ]; then
+        print_info "Installing Express backend dependencies..."
+        cd backend-express
+        npm install
         cd ..
-        print_success "Rust backend built successfully!"
-        print_info "Binary location: backend-rust/target/release/konversi-data-backend"
+        print_success "Express backend dependencies installed successfully!"
+        print_info "Node modules location: backend-express/node_modules"
     else
         print_info "Python backend doesn't need pre-building"
         print_success "Python dependencies will be installed on start"
@@ -449,23 +445,23 @@ show_usage() {
     echo "Usage: ./dev.sh [COMMAND] [BACKEND_TYPE]"
     echo ""
     echo "Commands:"
-    echo "  start [python|rust]   - Start development environment"
+    echo "  start [python|express]   - Start development environment"
     echo "  stop                  - Stop development environment"
-    echo "  restart [python|rust] - Restart development environment"
-    echo "  switch [python|rust]  - Switch backend type"
+    echo "  restart [python|express] - Restart development environment"
+    echo "  switch [python|express]  - Switch backend type"
     echo "  status                - Show status of services"
     echo "  logs                  - Show and follow logs"
-    echo "  build [python|rust]   - Build backend (mainly for Rust)"
+    echo "  build [python|express]   - Build backend (mainly for Express)"
     echo ""
     echo "Backend Types:"
     echo "  python (default)      - Use Python/FastAPI backend"
-    echo "  rust                  - Use Rust/Actix-web backend"
+    echo "  express               - Use Express/Node.js backend"
     echo ""
     echo "Examples:"
     echo "  ./dev.sh start                 # Start with saved/default backend"
     echo "  ./dev.sh start python          # Start with Python backend"
-    echo "  ./dev.sh start rust            # Start with Rust backend"
-    echo "  ./dev.sh switch rust           # Switch to Rust backend"
+    echo "  ./dev.sh start express            # Start with Express backend"
+    echo "  ./dev.sh switch express           # Switch to Express backend"
     echo "  ./dev.sh logs                  # Follow logs"
     echo "  ./dev.sh stop                  # Stop all services"
     echo ""
