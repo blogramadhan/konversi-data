@@ -17,6 +17,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3030}
       - BACKEND_WORKERS=${BACKEND_WORKERS:-4}
     volumes:
+      - backend-uploads:/app/temp_uploads
       - backend-temp:/app/temp_outputs
       - backend-data:/app/data
     healthcheck:
@@ -45,6 +46,7 @@ services:
       - BACKEND_HOST=${BACKEND_HOST:-0.0.0.0}
       - BACKEND_PORT=8000
     volumes:
+      - backend-rust-uploads:/app/temp_uploads
       - backend-rust-temp:/app/temp_outputs
       - backend-rust-data:/app/data
     healthcheck:
@@ -78,12 +80,16 @@ services:
 
 volumes:
   # Python backend volumes
+  backend-uploads:
+    driver: local
   backend-temp:
     driver: local
   backend-data:
     driver: local
 
   # Rust backend volumes
+  backend-rust-uploads:
+    driver: local
   backend-rust-temp:
     driver: local
   backend-rust-data:
