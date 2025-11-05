@@ -136,7 +136,7 @@ start_python_backend() {
 
     # Start backend in background
     print_info "Starting FastAPI server on port ${BACKEND_PORT:-8000}..."
-    PYTHONUNBUFFERED=1 uvicorn main:app --reload --host ${BACKEND_HOST:-0.0.0.0} --port ${BACKEND_PORT:-8000} > ../logs/backend.log 2>&1 &
+    PYTHONUNBUFFERED=1 MONGODB_URI="${MONGODB_URI}" uvicorn main:app --reload --host ${BACKEND_HOST:-0.0.0.0} --port ${BACKEND_PORT:-8000} > ../logs/backend.log 2>&1 &
     BACKEND_PID=$!
 
     cd ..
@@ -159,7 +159,7 @@ start_express_backend() {
 
     # Start backend in background
     print_info "Starting Express server on port ${BACKEND_PORT:-8000}..."
-    PORT=${BACKEND_PORT:-8000} HOST=${BACKEND_HOST:-0.0.0.0} CORS_ORIGINS="${CORS_ORIGINS}" node server.js > ../logs/backend.log 2>&1 &
+    PORT=${BACKEND_PORT:-8000} HOST=${BACKEND_HOST:-0.0.0.0} CORS_ORIGINS="${CORS_ORIGINS}" MONGODB_URI="${MONGODB_URI}" node server.js > ../logs/backend.log 2>&1 &
     BACKEND_PID=$!
 
     cd ..

@@ -6,6 +6,7 @@ const path = require('path');
 const duckdb = require('duckdb');
 const ExcelJS = require('exceljs');
 const axios = require('axios');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Setup Express app
@@ -57,79 +58,65 @@ try {
     process.exit(1);
 }
 
-// JSON Database setup
-const DB_PATH = path.join(DATA_DIR, 'conversion_stats.json');
+// MongoDB Configuration
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/konversi-data';
 
-// Initialize JSON database
-function initDB() {
-    try {
-        if (!fs.existsSync(DB_PATH)) {
-            const initialData = {
-                conversion_stats: [],
-                daily_stats: {}
-            };
-            fs.writeFileSync(DB_PATH, JSON.stringify(initialData, null, 2));
-            log.info(`Initialized JSON database at: ${DB_PATH}`);
-        } else {
-            log.info(`Using existing database at: ${DB_PATH}`);
-        }
-    } catch (error) {
-        log.error(`Failed to initialize database: ${error.message}`);
-        throw error;
-    }
-}
+// MongoDB Schemas
+const conversionStatSchema = new mongoose.Schema({
+    conversion_type: { type: String, required: true },
+    file_format: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    success: { type: Boolean, default: true }
+});
 
-// Read database
-function readDB() {
-    try {
-        const data = fs.readFileSync(DB_PATH, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        log.error(`Failed to read database: ${error.message}`);
-        return { conversion_stats: [], daily_stats: {} };
-    }
-}
+const dailyStatSchema = new mongoose.Schema({
+    date: { type: String, required: true, unique: true },
+    total_conversions: { type: Number, default: 0 },
+    file_upload_count: { type: Number, default: 0 },
+    url_conversion_count: { type: Number, default: 0 }
+});
 
-// Write database
-function writeDB(data) {
+// MongoDB Models
+const ConversionStat = mongoose.model('ConversionStat', conversionStatSchema);
+const DailyStat = mongoose.model('DailyStat', dailyStatSchema);
+
+// Initialize database connection
+async function initDB() {
     try {
-        fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+        await mongoose.connect(MONGODB_URI);
+        log.info('Connected to MongoDB successfully');
     } catch (error) {
-        log.error(`Failed to write database: ${error.message}`);
+        log.error(`Failed to connect to MongoDB: ${error.message}`);
         throw error;
     }
 }
 
 // Increment counter
-function incrementCounter(conversion_type, file_format) {
+async function incrementCounter(conversion_type, file_format) {
     try {
-        const db = readDB();
-
         // Insert conversion record
-        db.conversion_stats.push({
-            id: db.conversion_stats.length + 1,
+        await ConversionStat.create({
             conversion_type,
             file_format,
-            timestamp: new Date().toISOString(),
             success: true
         });
 
         // Update daily stats
         const today = new Date().toISOString().split('T')[0];
 
-        if (!db.daily_stats[today]) {
-            db.daily_stats[today] = {
-                date: today,
-                total_conversions: 0,
-                file_upload_count: 0,
-                url_conversion_count: 0
-            };
-        }
+        const updateData = {
+            $inc: {
+                total_conversions: 1,
+                [`${conversion_type}_count`]: 1
+            }
+        };
 
-        db.daily_stats[today].total_conversions += 1;
-        db.daily_stats[today][`${conversion_type}_count`] += 1;
+        await DailyStat.findOneAndUpdate(
+            { date: today },
+            updateData,
+            { upsert: true, new: true }
+        );
 
-        writeDB(db);
         log.info(`Counter incremented: ${conversion_type} - ${file_format}`);
     } catch (error) {
         log.error(`Failed to increment counter: ${error.message}`);
@@ -137,7 +124,10 @@ function incrementCounter(conversion_type, file_format) {
 }
 
 // Initialize database on startup
-initDB();
+initDB().catch(err => {
+    log.error(`Failed to initialize MongoDB: ${err.message}`);
+    process.exit(1);
+});
 
 // Multer configuration for file uploads
 const upload = multer({
@@ -182,6 +172,31 @@ async function convertToExcel(data, sheetName, outputPath) {
     await workbook.xlsx.writeFile(outputPath);
 }
 
+// Convert BigInt to Number (helper for DuckDB results)
+function convertBigIntToNumber(obj) {
+    if (obj === null || obj === undefined) {
+        return obj;
+    }
+
+    if (typeof obj === 'bigint') {
+        return Number(obj);
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(convertBigIntToNumber);
+    }
+
+    if (typeof obj === 'object') {
+        const converted = {};
+        for (const [key, value] of Object.entries(obj)) {
+            converted[key] = convertBigIntToNumber(value);
+        }
+        return converted;
+    }
+
+    return obj;
+}
+
 // Process file with DuckDB
 function processFileWithDuckDB(filePath, fileExt) {
     return new Promise((resolve, reject) => {
@@ -195,7 +210,10 @@ function processFileWithDuckDB(filePath, fileExt) {
 
             log.info(`Data loaded: ${result.length} rows`);
             duckDb.close();
-            resolve(result);
+
+            // Convert BigInt values to Number
+            const convertedResult = convertBigIntToNumber(result);
+            resolve(convertedResult);
         });
     });
 }
@@ -472,37 +490,53 @@ app.post('/convert-url', async (req, res) => {
 });
 
 // Stats endpoint
-app.get('/stats', (req, res) => {
+app.get('/stats', async (req, res) => {
     try {
-        const db = readDB();
-
         // Get total conversions
-        const totalConversions = db.conversion_stats.length;
+        const totalConversions = await ConversionStat.countDocuments();
 
         // Get conversions by type
-        const byType = db.conversion_stats.reduce((acc, stat) => {
-            acc[stat.conversion_type] = (acc[stat.conversion_type] || 0) + 1;
-            return acc;
-        }, {});
+        const byTypeResults = await ConversionStat.aggregate([
+            {
+                $group: {
+                    _id: '$conversion_type',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const byType = {};
+        byTypeResults.forEach(item => {
+            byType[item._id] = item.count;
+        });
 
         // Get conversions by format
-        const byFormat = db.conversion_stats.reduce((acc, stat) => {
-            acc[stat.file_format] = (acc[stat.file_format] || 0) + 1;
-            return acc;
-        }, {});
+        const byFormatResults = await ConversionStat.aggregate([
+            {
+                $group: {
+                    _id: '$file_format',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const byFormat = {};
+        byFormatResults.forEach(item => {
+            byFormat[item._id] = item.count;
+        });
 
         // Get today's stats
         const today = new Date().toISOString().split('T')[0];
-        const todayStats = db.daily_stats[today] || {
+        const todayStats = await DailyStat.findOne({ date: today }) || {
             total_conversions: 0,
             file_upload_count: 0,
             url_conversion_count: 0
         };
 
         // Get last 7 days stats
-        const weeklyStats = Object.values(db.daily_stats)
-            .sort((a, b) => b.date.localeCompare(a.date))
-            .slice(0, 7);
+        const weeklyStats = await DailyStat.find()
+            .sort({ date: -1 })
+            .limit(7);
 
         res.json({
             total_conversions: totalConversions,
@@ -515,9 +549,9 @@ app.get('/stats', (req, res) => {
                 csv: byFormat.csv || 0
             },
             today: {
-                total: todayStats.total_conversions,
-                file_upload: todayStats.file_upload_count,
-                url_conversion: todayStats.url_conversion_count
+                total: todayStats.total_conversions || 0,
+                file_upload: todayStats.file_upload_count || 0,
+                url_conversion: todayStats.url_conversion_count || 0
             },
             last_7_days: weeklyStats.map(row => ({
                 date: row.date,

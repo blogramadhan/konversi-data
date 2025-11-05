@@ -25,18 +25,18 @@ pip-delete-this-directory.txt
 .Python
 
 # ===================================
-# Rust Backend
+# Express Backend (Node.js)
 # ===================================
 
-# Rust build artifacts
-backend-rust/target/
-backend-rust/Cargo.lock
-**/target/
-**/*.rs.bk
+# Node dependencies
+backend-express/node_modules/
+backend-express/.env
 
-# Rust debug info
-backend-rust/debug/
-backend-rust/*.pdb
+# Logs
+backend-express/npm-debug.log*
+backend-express/yarn-debug.log*
+backend-express/yarn-error.log*
+backend-express/pnpm-debug.log*
 
 # ===================================
 # Frontend

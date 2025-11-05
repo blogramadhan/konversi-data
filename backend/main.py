@@ -11,8 +11,9 @@ import logging
 from pathlib import Path
 from typing import Optional
 import requests
-import sqlite3
 from datetime import datetime
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import PyMongoError
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -54,86 +55,62 @@ except Exception as e:
     logger.error(f"Failed to initialize data directory: {e}")
     raise
 
-# Database untuk counter - simpan di folder data yang persistent
-DB_PATH = DATA_DIR / "conversion_stats.db"
+# MongoDB Configuration
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+mongo_client = AsyncIOMotorClient(MONGODB_URI)
+db = mongo_client.konversi_data
 
+# MongoDB Collections
+conversion_stats = db.conversion_stats
+daily_stats = db.daily_stats
 
-# Initialize database
-def init_db():
-    """Initialize SQLite database for conversion statistics"""
+# Initialize database connection
+async def init_db():
+    """Initialize MongoDB connection"""
     try:
-        logger.info(f"Initializing database at: {DB_PATH.absolute()}")
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # Test connection
+        await mongo_client.admin.command('ping')
+        logger.info("Connected to MongoDB successfully")
     except Exception as e:
-        logger.error(f"Failed to connect to database at {DB_PATH}: {e}")
+        logger.error(f"Failed to connect to MongoDB: {e}")
         raise
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS conversion_stats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            conversion_type TEXT NOT NULL,
-            file_format TEXT NOT NULL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            success BOOLEAN DEFAULT TRUE
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS daily_stats (
-            date TEXT PRIMARY KEY,
-            total_conversions INTEGER DEFAULT 0,
-            file_upload_count INTEGER DEFAULT 0,
-            url_conversion_count INTEGER DEFAULT 0
-        )
-    """)
-
-    conn.commit()
-    conn.close()
 
 
 # Increment conversion counter
-def increment_counter(conversion_type: str, file_format: str):
+async def increment_counter(conversion_type: str, file_format: str):
     """Increment conversion counter in database"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-
         # Insert conversion record
-        cursor.execute("""
-            INSERT INTO conversion_stats (conversion_type, file_format)
-            VALUES (?, ?)
-        """, (conversion_type, file_format))
+        await conversion_stats.insert_one({
+            "conversion_type": conversion_type,
+            "file_format": file_format,
+            "timestamp": datetime.now(),
+            "success": True
+        })
 
         # Update daily stats
         today = datetime.now().strftime("%Y-%m-%d")
 
-        # Check if today's record exists
-        cursor.execute("SELECT date FROM daily_stats WHERE date = ?", (today,))
-        if cursor.fetchone():
-            # Update existing record
-            cursor.execute(f"""
-                UPDATE daily_stats
-                SET total_conversions = total_conversions + 1,
-                    {conversion_type}_count = {conversion_type}_count + 1
-                WHERE date = ?
-            """, (today,))
-        else:
-            # Create new record
-            cursor.execute(f"""
-                INSERT INTO daily_stats (date, total_conversions, {conversion_type}_count)
-                VALUES (?, 1, 1)
-            """, (today,))
+        await daily_stats.update_one(
+            {"date": today},
+            {
+                "$inc": {
+                    "total_conversions": 1,
+                    f"{conversion_type}_count": 1
+                }
+            },
+            upsert=True
+        )
 
-        conn.commit()
-        conn.close()
         logger.info(f"Counter incremented: {conversion_type} - {file_format}")
     except Exception as e:
         logger.error(f"Failed to increment counter: {e}")
 
 
 # Initialize database on startup
-init_db()
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
 
 
 # Pydantic model untuk request URL
@@ -228,7 +205,7 @@ async def convert_to_excel(
         logger.info("Conversion successful")
 
         # Increment counter for successful conversion
-        increment_counter("file_upload", file_ext)
+        await increment_counter("file_upload", file_ext)
 
         # Return file Excel
         return FileResponse(
@@ -439,7 +416,7 @@ async def convert_url_to_excel(request: ConvertURLRequest):
         logger.info("Conversion successful")
 
         # Increment counter for successful conversion
-        increment_counter("url_conversion", file_ext)
+        await increment_counter("url_conversion", file_ext)
 
         # Return file Excel
         return FileResponse(
@@ -480,56 +457,37 @@ async def convert_url_to_excel(request: ConvertURLRequest):
 async def get_conversion_stats():
     """Get conversion statistics"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-
         # Get total conversions
-        cursor.execute("SELECT COUNT(*) FROM conversion_stats")
-        total_conversions = cursor.fetchone()[0]
+        total_conversions = await conversion_stats.count_documents({})
 
         # Get conversions by type
-        cursor.execute("""
-            SELECT conversion_type, COUNT(*) as count
-            FROM conversion_stats
-            GROUP BY conversion_type
-        """)
-        by_type = {row[0]: row[1] for row in cursor.fetchall()}
+        by_type_pipeline = [
+            {"$group": {"_id": "$conversion_type", "count": {"$sum": 1}}}
+        ]
+        by_type_results = await conversion_stats.aggregate(by_type_pipeline).to_list(length=None)
+        by_type = {item["_id"]: item["count"] for item in by_type_results}
 
         # Get conversions by format
-        cursor.execute("""
-            SELECT file_format, COUNT(*) as count
-            FROM conversion_stats
-            GROUP BY file_format
-        """)
-        by_format = {row[0]: row[1] for row in cursor.fetchall()}
+        by_format_pipeline = [
+            {"$group": {"_id": "$file_format", "count": {"$sum": 1}}}
+        ]
+        by_format_results = await conversion_stats.aggregate(by_format_pipeline).to_list(length=None)
+        by_format = {item["_id"]: item["count"] for item in by_format_results}
 
         # Get today's stats
         today = datetime.now().strftime("%Y-%m-%d")
-        cursor.execute("""
-            SELECT total_conversions, file_upload_count, url_conversion_count
-            FROM daily_stats
-            WHERE date = ?
-        """, (today,))
-        today_stats = cursor.fetchone()
+        today_stats = await daily_stats.find_one({"date": today})
 
         # Get last 7 days stats
-        cursor.execute("""
-            SELECT date, total_conversions, file_upload_count, url_conversion_count
-            FROM daily_stats
-            ORDER BY date DESC
-            LIMIT 7
-        """)
-        weekly_stats = [
-            {
-                "date": row[0],
-                "total": row[1],
-                "file_upload": row[2],
-                "url_conversion": row[3]
-            }
-            for row in cursor.fetchall()
-        ]
-
-        conn.close()
+        weekly_stats_cursor = daily_stats.find().sort("date", -1).limit(7)
+        weekly_stats = []
+        async for stat in weekly_stats_cursor:
+            weekly_stats.append({
+                "date": stat.get("date"),
+                "total": stat.get("total_conversions", 0),
+                "file_upload": stat.get("file_upload_count", 0),
+                "url_conversion": stat.get("url_conversion_count", 0)
+            })
 
         return {
             "total_conversions": total_conversions,
@@ -542,9 +500,9 @@ async def get_conversion_stats():
                 "csv": by_format.get("csv", 0)
             },
             "today": {
-                "total": today_stats[0] if today_stats else 0,
-                "file_upload": today_stats[1] if today_stats else 0,
-                "url_conversion": today_stats[2] if today_stats else 0
+                "total": today_stats.get("total_conversions", 0) if today_stats else 0,
+                "file_upload": today_stats.get("file_upload_count", 0) if today_stats else 0,
+                "url_conversion": today_stats.get("url_conversion_count", 0) if today_stats else 0
             },
             "last_7_days": weekly_stats
         }

@@ -634,7 +634,18 @@ function App() {
             <Text fontSize="xs" color="gray.600" textAlign="center">
               © 2025, Dibuat dengan{' '}
               <Icon as={FiHeart} color="red.500" display="inline" mb="-2px" />
-              {' '}oleh <Text as="span" fontWeight="semibold" color="gray.700">Kurnia Ramadhan</Text>
+              {' '}oleh{' '}
+              <Text
+                as="a"
+                href="https://thynk.my.id"
+                target="_blank"
+                rel="noopener noreferrer"
+                fontWeight="semibold"
+                color="blue.600"
+                _hover={{ color: "blue.700", textDecoration: "underline" }}
+              >
+                ThynK.my.id
+              </Text>
             </Text>
           </Flex>
         </VStack>

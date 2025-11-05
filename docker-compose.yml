@@ -16,6 +16,7 @@ services:
       - PORT=8000
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3030}
       - BACKEND_WORKERS=${BACKEND_WORKERS:-4}
+      - MONGODB_URI=${MONGODB_URI}
     volumes:
       - backend-uploads:/app/temp_uploads
       - backend-temp:/app/temp_outputs
@@ -44,6 +45,7 @@ services:
       - HOST=${BACKEND_HOST:-0.0.0.0}
       - PORT=8000
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3030}
+      - MONGODB_URI=${MONGODB_URI}
     volumes:
       - backend-express-uploads:/app/temp_uploads
       - backend-express-temp:/app/temp_outputs
