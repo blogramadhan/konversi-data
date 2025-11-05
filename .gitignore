@@ -29,6 +29,7 @@ pip-delete-this-directory.txt
 # ===================================
 
 # Node dependencies
+**/node_modules/
 backend-express/node_modules/
 backend-express/.env
 
@@ -42,8 +43,7 @@ backend-express/pnpm-debug.log*
 # Frontend
 # ===================================
 
-# Node dependencies
-frontend/node_modules/
+# Node dependencies (already covered by **/node_modules/ above)
 frontend/dist/
 frontend/.vite/
 frontend/dist-ssr/
