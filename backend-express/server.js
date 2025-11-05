@@ -137,6 +137,24 @@ const upload = multer({
     }
 });
 
+// Helper function to serialize cell values properly
+function serializeCellValue(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    if (typeof value === 'object') {
+        // Convert objects and arrays to JSON string
+        try {
+            return JSON.stringify(value);
+        } catch (e) {
+            return String(value);
+        }
+    }
+
+    return value;
+}
+
 // Convert data to Excel using ExcelJS
 async function convertToExcel(data, sheetName, outputPath) {
     const workbook = new ExcelJS.Workbook();
@@ -150,22 +168,37 @@ async function convertToExcel(data, sheetName, outputPath) {
     const headers = Object.keys(data[0]);
     worksheet.addRow(headers);
 
-    // Add data rows
+    // Add data rows with proper serialization
     data.forEach(row => {
-        const values = headers.map(header => row[header]);
+        const values = headers.map(header => serializeCellValue(row[header]));
         worksheet.addRow(values);
     });
 
-    // Auto-fit columns
+    // Auto-fit columns with maximum width limit
+    const MAX_COLUMN_WIDTH = 50; // Maximum width in characters
+    const MIN_COLUMN_WIDTH = 10;  // Minimum width in characters
+
     worksheet.columns.forEach(column => {
         let maxLength = 0;
         column.eachCell({ includeEmpty: true }, cell => {
-            const columnLength = cell.value ? cell.value.toString().length : 10;
+            const columnLength = cell.value ? cell.value.toString().length : MIN_COLUMN_WIDTH;
             if (columnLength > maxLength) {
                 maxLength = columnLength;
             }
         });
-        column.width = maxLength < 10 ? 10 : maxLength + 2;
+
+        // Apply min and max constraints
+        if (maxLength < MIN_COLUMN_WIDTH) {
+            column.width = MIN_COLUMN_WIDTH;
+        } else if (maxLength > MAX_COLUMN_WIDTH) {
+            column.width = MAX_COLUMN_WIDTH;
+            // Enable text wrapping for cells that exceed max width
+            column.eachCell({ includeEmpty: false }, cell => {
+                cell.alignment = { wrapText: true, vertical: 'top' };
+            });
+        } else {
+            column.width = maxLength + 2;
+        }
     });
 
     // Save workbook
