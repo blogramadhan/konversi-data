@@ -23,7 +23,8 @@ RUN mkdir -p temp_uploads temp_outputs data && \
     chmod 755 temp_uploads temp_outputs data
 
 # Create non-root user for security
-RUN useradd -m -u 1000 appuser && \
+# Use UID 1001 to avoid conflicts with existing users
+RUN useradd -m -u 1001 appuser && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
