@@ -1,35 +1,81 @@
-# Konversi Data - JSON/CSV ke Excel
+# 📊 Konversi Data - JSON/CSV ke Excel
 
-Aplikasi web untuk konversi file JSON dan CSV ke format Excel (.xlsx) menggunakan FastAPI, DuckDB, dan Chakra UI.
+Aplikasi web modern untuk konversi file JSON dan CSV ke format Excel (.xlsx) dengan statistik real-time dan dual backend support (Python FastAPI & Node.js Express).
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Node](https://img.shields.io/badge/Node-20+-green.svg)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
 ---
 
----
+## ✨ Fitur Utama
 
-## ✨ Fitur
-
+### 🎯 Konversi Data
 - ✅ Upload file JSON atau CSV
-- ✅ Konversi otomatis ke format Excel
-- ✅ Kustomisasi nama sheet
-- ✅ Interface yang user-friendly dengan Chakra UI
-- ✅ Processing data menggunakan DuckDB untuk performa optimal
+- ✅ Konversi dari URL (JSON/CSV online)
+- ✅ Konversi otomatis ke format Excel (.xlsx)
+- ✅ Kustomisasi nama sheet Excel
+- ✅ Auto-formatting kolom Excel
 - ✅ Download otomatis file hasil konversi
 
+### 📊 Statistik Real-time
+- ✅ Total konversi keseluruhan
+- ✅ Statistik hari ini
+- ✅ Grafik 7 hari terakhir
+- ✅ Breakdown berdasarkan tipe konversi
+- ✅ Breakdown berdasarkan format file
+- ✅ Data disimpan di MongoDB Atlas
+
+### 🚀 Backend Options
+- ✅ **Python Backend** - FastAPI dengan auto documentation
+- ✅ **Express Backend** - Node.js untuk performa tinggi
+- ✅ Switch backend dengan 1 perintah
+- ✅ Hot-reload untuk development
+- ✅ Production-ready dengan Docker
+
+### 🎨 User Experience
+- ✅ Interface modern dengan Chakra UI
+- ✅ Responsive design
+- ✅ Real-time progress indicator
+- ✅ Error handling yang informatif
+- ✅ Tab-based navigation (Upload File & Dari URL)
+
 ---
 
-## 🛠️ Teknologi
+## 🛠️ Teknologi Stack
 
-### Backend
+### Backend Options
+
+#### Option 1: Python Backend (FastAPI)
 - **FastAPI** - Modern Python web framework
-- **DuckDB** - In-memory database untuk processing data yang cepat
-- **Pandas** - Data manipulation dan export ke Excel
+- **DuckDB** - In-memory analytical database
+- **Pandas** - Data manipulation library
 - **OpenPyXL** - Excel file handling
+- **Motor** - Async MongoDB driver
+- **Uvicorn** - ASGI server
+
+#### Option 2: Express Backend (Node.js)
+- **Express.js** - Fast web framework
+- **DuckDB** - In-memory analytical database
+- **ExcelJS** - Excel file generation
+- **Mongoose** - MongoDB ODM
+- **Multer** - File upload handling
 
 ### Frontend
-- **React** - UI library
-- **Chakra UI** - Component library
-- **Vite** - Build tool
+- **React 18** - UI library
+- **Chakra UI** - Modern component library
+- **Vite** - Lightning-fast build tool
 - **Axios** - HTTP client
+- **React Icons** - Icon library
+
+### Database
+- **MongoDB Atlas** - Cloud database untuk statistics
+
+### DevOps
+- **Docker** - Containerization
+- **Docker Compose** - Multi-container orchestration
+- **Nginx** - Production web server (frontend)
 
 ---
 
@@ -37,155 +83,287 @@ Aplikasi web untuk konversi file JSON dan CSV ke format Excel (.xlsx) menggunaka
 
 ```
 konversi-data/
-├── backend/
-│   ├── __init__.py
-│   └── main.py              # FastAPI application
-├── frontend/
+├── backend/                    # Python FastAPI backend
+│   ├── main.py                # FastAPI application
+│   ├── Dockerfile             # Backend container config
+│   └── docker-entrypoint.sh   # Container entrypoint
+│
+├── backend-express/           # Node.js Express backend
+│   ├── server.js              # Express application
+│   ├── package.json           # Node dependencies
+│   └── Dockerfile             # Backend container config
+│
+├── frontend/                  # React frontend
 │   ├── src/
-│   │   ├── App.jsx          # Main component
-│   │   └── main.jsx         # Entry point
+│   │   ├── App.jsx           # Main component
+│   │   ├── main.jsx          # Entry point
+│   │   └── theme.js          # Chakra UI theme
 │   ├── index.html
 │   ├── package.json
-│   └── vite.config.js
-├── test_data/
-│   ├── sample.json          # Sample JSON
-│   └── sample.csv           # Sample CSV
-├── pyproject.toml           # Python dependencies
-└── README.md
+│   ├── vite.config.js
+│   └── Dockerfile            # Frontend container config
+│
+├── test_data/                # Sample data untuk testing
+│   ├── sample.json           # Sample JSON file
+│   └── sample.csv            # Sample CSV file
+│
+├── .env.example              # Environment variables template
+├── .gitignore                # Git ignore rules
+├── docker-compose.yml        # Docker orchestration
+├── dev.sh                    # Development script
+├── deploy.sh                 # Production deployment script
+├── pyproject.toml            # Python dependencies
+├── uv.lock                   # Python lock file
+└── README.md                 # Documentation
 ```
 
 ---
 
-## 📦 Instalasi
+## 📦 Prerequisites
 
-### 1️⃣ Clone Repository
+### For Development (Local)
+- **Python 3.12+** (jika menggunakan Python backend)
+- **Node.js 20+** dan npm (untuk Express backend dan frontend)
+- **MongoDB Atlas Account** (untuk database statistics)
 
+### For Production (Docker)
+- **Docker Engine 20.10+**
+- **Docker Compose V2** atau docker-compose 1.29+
+- **MongoDB Atlas Account**
+
+---
+
+## 🚀 Quick Start
+
+### Development Mode (Local)
+
+#### 1. Clone Repository
 ```bash
 git clone <repository-url>
 cd konversi-data
 ```
 
-### 2️⃣ Setup Backend
-
+#### 2. Setup Environment Variables
 ```bash
-# Install dependencies dengan uv (recommended)
-uv sync
-
-# Atau dengan pip
-pip install -e .
+cp .env.example .env
+nano .env  # Edit dan isi MONGODB_URI dengan credentials Anda
 ```
 
-### 3️⃣ Setup Frontend
+#### 3. Start Application
 
+**Dengan Express Backend (Recommended):**
 ```bash
-cd frontend
-npm install
-```
-
----
-
-## 🚀 Menjalankan Aplikasi
-
-### 🔥 Development Mode (Recommended)
-
-Gunakan development script untuk menjalankan backend dan frontend secara otomatis:
-
-```bash
-# Start dengan Python backend
-./dev.sh start python
-
-# Atau start dengan Express backend
 ./dev.sh start express
 ```
 
-Aplikasi akan berjalan di:
+**Atau dengan Python Backend:**
+```bash
+./dev.sh start python
+```
+
+#### 4. Akses Aplikasi
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000
 - **API Docs** (Python only): http://localhost:8000/docs
 
-**Fitur Development:**
-- ✅ Hot-reload untuk backend Python
-- ✅ HMR (Hot Module Replacement) untuk frontend
-- ✅ Logs tersimpan di `logs/` folder
-- ✅ Mudah switch antara Python dan Express backend
+### Production Mode (Docker)
 
-**Commands:**
+#### 1. Setup Environment
 ```bash
-./dev.sh start [python|express]  # Start development
-./dev.sh stop                 # Stop all services
-./dev.sh status               # Check status
-./dev.sh logs                 # View logs
-./dev.sh switch express          # Switch backend
+cp .env.example .env
+nano .env  # Edit dan isi MONGODB_URI
 ```
+
+#### 2. Deploy
+
+**Dengan Express Backend:**
+```bash
+./deploy.sh start express
+```
+
+**Atau dengan Python Backend:**
+```bash
+./deploy.sh start python
+```
+
+#### 3. Akses Aplikasi
+- **Frontend**: http://localhost:3030
+- **Backend API**: http://localhost:8000
 
 ---
 
-### 🔧 Manual Mode (Alternative)
+## 🎮 Development Commands
 
-Jika ingin menjalankan secara manual:
-
-**Backend (Terminal 1):**
-
+### Start & Stop
 ```bash
-cd backend
-uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+./dev.sh start [python|express]   # Start development environment
+./dev.sh stop                      # Stop all services
+./dev.sh restart [python|express]  # Restart services
 ```
 
-Backend akan berjalan di: **http://localhost:8000**
-
-**Frontend (Terminal 2):**
-
+### Monitoring
 ```bash
-cd frontend
-npm run dev
+./dev.sh status                    # Check service status
+./dev.sh logs                      # Follow all logs
 ```
 
-Frontend akan berjalan di: **http://localhost:5173**
+### Backend Switching
+```bash
+./dev.sh switch express            # Switch to Express backend
+./dev.sh switch python             # Switch to Python backend
+```
 
-**Buka Aplikasi:**
+### Build
+```bash
+./dev.sh build express             # Install Express dependencies
+./dev.sh build python              # Setup Python environment
+```
 
-Akses di browser: **http://localhost:5173**
+**Fitur Development:**
+- ✅ Auto-reload backend (uvicorn --reload atau nodemon)
+- ✅ HMR (Hot Module Replacement) frontend dengan Vite
+- ✅ Logs tersimpan di `logs/backend.log` dan `logs/frontend.log`
+- ✅ Easy backend switching
+
+---
+
+## 🐳 Production Deployment
+
+### Deploy Commands
+```bash
+./deploy.sh start [python|express]   # Start production
+./deploy.sh stop                      # Stop application
+./deploy.sh restart [python|express]  # Restart services
+./deploy.sh status                    # Check status & health
+./deploy.sh logs                      # View logs
+./deploy.sh switch express            # Switch backend
+./deploy.sh backup                    # Backup MongoDB data
+./deploy.sh restore                   # Restore from backup
+./deploy.sh update                    # Pull latest code & rebuild
+```
+
+### Backend Selection Guide
+
+#### Python Backend (FastAPI)
+**Gunakan jika:**
+- ✅ Butuh auto-generated API documentation (Swagger)
+- ✅ Development focus dengan quick iteration
+- ✅ Familiar dengan Python ecosystem
+
+**Kelebihan:**
+- Auto API docs di `/docs`
+- Easy debugging
+- Rich Python libraries
+
+#### Express Backend (Node.js)
+**Gunakan jika:**
+- ✅ Production deployment
+- ✅ Need maximum performance
+- ✅ Familiar dengan Node.js ecosystem
+
+**Kelebihan:**
+- Faster execution
+- Lower memory footprint
+- Quick build time
+- Production-proven
 
 ---
 
 ## 📖 Cara Penggunaan
 
-1. Buka browser dan akses `http://localhost:5173`
-2. Klik tombol **"Choose File"** dan pilih file JSON atau CSV
-3. (Opsional) Ubah nama sheet di field **"Nama Sheet Excel"**
-4. Klik tombol **"Konversi ke Excel"**
-5. File Excel akan otomatis terunduh setelah konversi selesai ✅
+### Upload File
+
+1. Buka aplikasi di browser
+2. Pilih tab **"Upload File"**
+3. Klik **"Choose File"** dan pilih file JSON atau CSV
+4. (Opsional) Ubah nama sheet di field **"Nama Sheet Excel"**
+5. Klik **"Konversi ke Excel"**
+6. File Excel akan otomatis terunduh ✅
+
+### Konversi dari URL
+
+1. Pilih tab **"Dari URL"**
+2. Masukkan URL lengkap file JSON atau CSV
+3. (Opsional) Ubah nama sheet
+4. Klik **"Konversi ke Excel"**
+5. File Excel akan otomatis terunduh ✅
+
+### Lihat Statistik
+
+Dashboard menampilkan:
+- **Total Konversi**: Semua konversi sejak awal
+- **Hari Ini**: Konversi hari ini (file upload & URL)
+- **Format Populer**: Format paling banyak dikonversi (JSON/CSV)
 
 ---
 
 ## 🔌 API Endpoints
 
-### `GET /`
-Informasi API dan daftar endpoints
-
-### `POST /convert`
-Konversi file JSON/CSV ke Excel
-
-**Parameters:**
-- `file` (form-data, required): File JSON atau CSV yang akan dikonversi
-- `sheet_name` (form-data, optional): Nama sheet di Excel (default: "Data")
-
-**Response:**
-- File Excel (.xlsx) siap download
-
-### `GET /health`
-Health check endpoint
-
-**Response:**
+### Health Check
+```http
+GET /health
+```
+Response:
 ```json
 {
   "status": "healthy",
-  "duckdb_version": "1.4.1",
-  "pandas_version": "2.3.3"
+  "version": "1.0.0"
 }
 ```
 
-**API Documentation:** http://localhost:8000/docs (Swagger UI)
+### Convert File
+```http
+POST /convert
+Content-Type: multipart/form-data
+
+Parameters:
+- file: File (JSON/CSV)
+- sheet_name: String (optional, default: "Data")
+```
+
+### Convert from URL
+```http
+POST /convert-url
+Content-Type: application/json
+
+Body:
+{
+  "url": "https://example.com/data.json",
+  "sheet_name": "Data" (optional)
+}
+```
+
+### Get Statistics
+```http
+GET /stats
+```
+Response:
+```json
+{
+  "total_conversions": 150,
+  "by_type": {
+    "file_upload": 100,
+    "url_conversion": 50
+  },
+  "by_format": {
+    "json": 90,
+    "csv": 60
+  },
+  "today": {
+    "total": 10,
+    "file_upload": 7,
+    "url_conversion": 3
+  },
+  "last_7_days": [...]
+}
+```
+
+### Cleanup
+```http
+POST /cleanup
+```
+
+**API Documentation (Python backend only):** http://localhost:8000/docs
 
 ---
 
@@ -193,7 +371,7 @@ Health check endpoint
 
 ### JSON Format
 
-File harus berupa **array of objects** dengan struktur yang konsisten:
+File harus berupa **array of objects**:
 
 ```json
 [
@@ -212,7 +390,7 @@ File harus berupa **array of objects** dengan struktur yang konsisten:
 
 ### CSV Format
 
-File harus memiliki **header row** dan data yang konsisten:
+File harus memiliki **header row**:
 
 ```csv
 nama,umur,kota
@@ -220,188 +398,42 @@ John Doe,30,Jakarta
 Jane Smith,25,Bandung
 ```
 
-**Sample files tersedia di:** `test_data/sample.json` dan `test_data/sample.csv`
-
----
-
----
-
-## 🐳 Production Deployment
-
-### Prerequisites
-- Docker Engine 20.10+
-- Docker Compose V2 or docker-compose 1.29+
-
-### Quick Start - Production
-
-```bash
-# 1. Copy dan edit environment configuration
-cp .env.example .env
-nano .env
-
-# 2. Deploy dengan Python backend
-./deploy.sh start python
-
-# Atau deploy dengan Express backend (recommended for production)
-./deploy.sh start express
-```
-
-Aplikasi akan berjalan di:
-- **Frontend**: http://localhost:3030
-- **Backend API**: http://localhost:8000
-
-### Deployment Commands
-
-```bash
-./deploy.sh start [python|express]  # Start production
-./deploy.sh stop                 # Stop application
-./deploy.sh status               # Check status
-./deploy.sh logs                 # View logs
-./deploy.sh switch express          # Switch backend
-./deploy.sh backup               # Backup database
-./deploy.sh update               # Update & rebuild
-```
-
-### Backend Selection
-
-Pilih backend sesuai kebutuhan:
-
-**Python Backend (FastAPI):**
-- ✅ Easy to debug
-- ✅ Auto API documentation
-- ✅ Quick development
-- ⚠️  Moderate performance
-
-**Express Backend (Node.js):**
-- ✅ Fast and efficient
-- ✅ Easy to maintain
-- ✅ Production-ready
-- ✅ Quick build time
-
-### 🚨 Production Deployment - Express Backend
-
-#### Deploy ke Production
-
-```bash
-# Di server production
-cd ~/code/konversi-data
-./deploy.sh start express
-```
-
-#### Verifikasi Deployment
-
-```bash
-# Check status
-./deploy.sh status
-
-# Check logs
-docker logs konversi-data-backend-express
-
-# Test health
-curl http://localhost:8000/health
-```
-
-**Expected**: `{"status":"healthy","version":"1.0.0"}`
-
----
-
-## 🔧 Development
-
-Lihat section "Menjalankan Aplikasi" di atas untuk development mode.
-
----
-
-## 🐳 Docker (Manual)
-
-Jika ingin menggunakan Docker Compose secara manual:
-
-**Build dan jalankan:**
-```bash
-docker-compose up -d
-```
-
-2. **Akses aplikasi:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
-   - API Docs: http://localhost:8000/docs
-
-3. **Lihat logs:**
-```bash
-# Semua services
-docker-compose logs -f
-
-# Backend saja
-docker-compose logs -f backend
-
-# Frontend saja
-docker-compose logs -f frontend
-```
-
-4. **Stop aplikasi:**
-```bash
-docker-compose down
-```
-
-5. **Stop dan hapus volumes:**
-```bash
-docker-compose down -v
-```
-
-### Docker Commands
-
-**Build ulang images:**
-```bash
-docker-compose build
-```
-
-**Rebuild tanpa cache:**
-```bash
-docker-compose build --no-cache
-```
-
-**Check status containers:**
-```bash
-docker-compose ps
-```
-
-**Masuk ke container:**
-```bash
-# Backend
-docker-compose exec backend sh
-
-# Frontend
-docker-compose exec frontend sh
-```
-
-### Production Deployment
-
-Untuk production, pastikan:
-
-1. Update environment variables di `.env`:
-```env
-CORS_ORIGINS=https://yourdomain.com
-VITE_API_URL=https://api.yourdomain.com
-```
-
-2. Gunakan reverse proxy (nginx/traefik) di depan containers
-3. Enable HTTPS dengan SSL certificates
-4. Setup monitoring dan logging
-5. Configure restart policies di docker-compose.yml
+**Sample files:** `test_data/sample.json` dan `test_data/sample.csv`
 
 ---
 
 ## ⚙️ Environment Variables
 
-Copy `.env.example` ke `.env` dan sesuaikan jika diperlukan:
+File `.env.example` berisi template konfigurasi:
 
 ```env
-# Backend
+# MongoDB Configuration
+MONGODB_URI=mongodb+srv://your_username:your_password@cluster.mongodb.net/?appName=YourApp
+
+# Backend Configuration
 BACKEND_PORT=8000
 BACKEND_HOST=0.0.0.0
+BACKEND_WORKERS=4
 
-# Frontend
+# Frontend Configuration
+FRONTEND_PORT=3030
+FRONTEND_HOST=0.0.0.0
 VITE_API_URL=http://localhost:8000
+
+# CORS Configuration
+CORS_ORIGINS=http://localhost:3030,http://localhost:5173
+
+# Docker Configuration
+COMPOSE_PROJECT_NAME=konversi-data
+NODE_ENV=production
 ```
+
+### Konfigurasi MongoDB
+
+1. Buat cluster gratis di [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Buat database user dengan password
+3. Whitelist IP address (0.0.0.0/0 untuk testing)
+4. Copy connection string ke `MONGODB_URI` di `.env`
 
 ---
 
@@ -409,20 +441,56 @@ VITE_API_URL=http://localhost:8000
 
 ### Common Issues
 
-| Error | Solusi |
+| Issue | Solusi |
 |-------|--------|
-| **CORS Error** | Pastikan backend sudah berjalan di port 8000 |
-| **File Upload Error** | Pastikan file format .json atau .csv dan tidak kosong |
-| **DuckDB Error** | Pastikan struktur data konsisten (JSON: array of objects, CSV: dengan header) |
-| **Backend Not Responding** | Check logs: `docker logs konversi-data-backend-express` atau `docker logs konversi-data-backend-python` |
+| **CORS Error** | Pastikan CORS_ORIGINS di .env sesuai dengan frontend URL |
+| **MongoDB Connection Failed** | Cek MONGODB_URI, pastikan IP whitelisted di Atlas |
+| **File Upload Error** | Cek format file (harus JSON array atau CSV dengan header) |
+| **Port Already in Use** | Ubah BACKEND_PORT atau FRONTEND_PORT di .env |
+| **Docker Build Failed** | Jalankan `docker system prune` dan rebuild |
 
-### Deployment Issues
+### Debugging
 
-**Jika backend di production crash atau restarting:**
+**Development Mode:**
+```bash
+# Check logs
+./dev.sh logs
 
-1. Check logs: `docker logs konversi-data-backend-express` atau `docker logs konversi-data-backend-python`
-2. Check container status: `./deploy.sh status`
-3. Restart backend: `./deploy.sh restart [python|express]`
+# Check specific service
+tail -f logs/backend.log
+tail -f logs/frontend.log
+```
+
+**Production Mode:**
+```bash
+# Check status
+./deploy.sh status
+
+# Check logs
+./deploy.sh logs
+
+# Check specific container
+docker logs konversi-data-backend-express
+docker logs konversi-data-backend-python
+docker logs konversi-data-frontend
+```
+
+### Reset Environment
+
+**Development:**
+```bash
+./dev.sh stop
+rm -rf logs/
+rm .backend .dev.pids*
+./dev.sh start express
+```
+
+**Production:**
+```bash
+./deploy.sh stop
+docker system prune -a
+./deploy.sh start express
+```
 
 ---
 
@@ -430,55 +498,109 @@ VITE_API_URL=http://localhost:8000
 
 ### Test dengan Sample Data
 
-Project menyediakan sample data untuk testing:
+#### Via Frontend
+1. Akses http://localhost:5173 (dev) atau http://localhost:3030 (prod)
+2. Upload file dari `test_data/sample.json` atau `test_data/sample.csv`
+3. Klik "Konversi ke Excel"
+4. Verify file terdownload dengan benar
 
+#### Via API (cURL)
+
+**Test File Upload:**
 ```bash
-# Jalankan backend
-cd backend
-uv run uvicorn main:app --host 0.0.0.0 --port 8000
-
-# Test dengan cURL (terminal lain)
 curl -X POST http://localhost:8000/convert \
   -F "file=@test_data/sample.json" \
-  -F "sheet_name=Test" \
+  -F "sheet_name=TestSheet" \
   -o output.xlsx
 ```
 
-### Test dengan Frontend
+**Test URL Conversion:**
+```bash
+curl -X POST http://localhost:8000/convert-url \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://api.example.com/data.json","sheet_name":"Data"}' \
+  -o output.xlsx
+```
 
-1. Upload `test_data/sample.json` atau `test_data/sample.csv`
-2. Klik "Konversi ke Excel"
-3. File akan terdownload otomatis
+**Test Health:**
+```bash
+curl http://localhost:8000/health
+```
+
+**Test Stats:**
+```bash
+curl http://localhost:8000/stats
+```
 
 ---
 
-## 🤝 Kontribusi
+## 🔐 Security
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### Production Checklist
+
+- ✅ Ganti `MONGODB_URI` dengan credentials production
+- ✅ Update `CORS_ORIGINS` dengan domain production
+- ✅ Set `NODE_ENV=production`
+- ✅ Gunakan HTTPS dengan reverse proxy (Nginx/Caddy)
+- ✅ Limit file upload size (default: 100MB)
+- ✅ Implement rate limiting
+- ✅ Regular security updates
+
+### Security Features
+
+- ✅ Non-root user di Docker containers (UID 1001)
+- ✅ CORS protection
+- ✅ File type validation
+- ✅ Automatic file cleanup
+- ✅ Environment variables untuk secrets
 
 ---
 
-## 📄 Lisensi
+## 🤝 Contributing
 
-MIT License - bebas untuk digunakan dan dimodifikasi.
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+---
+
+## 📄 License
+
+MIT License - Free to use and modify.
 
 ---
 
 ## 👤 Author
 
-**Rizko** - Initial Development
+**ThynK.my.id** - [https://thynk.my.id](https://thynk.my.id)
+
+---
+
+## 🙏 Credits
+
+Built with:
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [Express.js](https://expressjs.com/)
+- [React](https://react.dev/)
+- [Chakra UI](https://chakra-ui.com/)
+- [DuckDB](https://duckdb.org/)
+- [MongoDB](https://www.mongodb.com/)
 
 ---
 
 ## 📞 Support
 
-Jika mengalami masalah:
+Butuh bantuan?
 
-1. ✅ Baca dokumentasi troubleshooting
-2. ✅ Check backend logs di terminal
-3. ✅ Check browser console (F12)
-4. ✅ Test dengan sample data yang disediakan
-5. ✅ Create issue di GitHub dengan detail error
+1. ✅ Baca dokumentasi di atas
+2. ✅ Check troubleshooting section
+3. ✅ Cek logs untuk error details
+4. ✅ Test dengan sample data
+5. ✅ Create issue dengan detail lengkap
 
 ---
 
