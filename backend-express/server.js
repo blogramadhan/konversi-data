@@ -143,8 +143,23 @@ function serializeCellValue(value) {
         return '';
     }
 
-    if (typeof value === 'object') {
-        // Convert objects and arrays to JSON string
+    // Handle Date objects
+    if (value instanceof Date) {
+        return value.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+    }
+
+    // Handle primitive types (string, number, boolean)
+    if (typeof value !== 'object') {
+        return value;
+    }
+
+    // Handle Buffer (binary data)
+    if (Buffer.isBuffer(value)) {
+        return value.toString('base64');
+    }
+
+    // Handle arrays and plain objects
+    if (Array.isArray(value) || value.constructor === Object) {
         try {
             return JSON.stringify(value);
         } catch (e) {
@@ -152,7 +167,19 @@ function serializeCellValue(value) {
         }
     }
 
-    return value;
+    // Handle other objects (Error, RegExp, etc.)
+    // Try to convert to string first
+    const stringValue = String(value);
+    if (stringValue !== '[object Object]') {
+        return stringValue;
+    }
+
+    // Last resort: try JSON.stringify
+    try {
+        return JSON.stringify(value);
+    } catch (e) {
+        return stringValue;
+    }
 }
 
 // Convert data to Excel using ExcelJS
@@ -167,6 +194,20 @@ async function convertToExcel(data, sheetName, outputPath) {
     // Add headers
     const headers = Object.keys(data[0]);
     worksheet.addRow(headers);
+
+    // Debug: Log first row data types
+    if (data.length > 0) {
+        log.info('First row data sample:');
+        headers.forEach(header => {
+            const value = data[0][header];
+            const type = value === null ? 'null' :
+                         value === undefined ? 'undefined' :
+                         Array.isArray(value) ? 'array' :
+                         value instanceof Date ? 'Date' :
+                         typeof value;
+            log.info(`  ${header}: ${type} = ${JSON.stringify(value).substring(0, 100)}`);
+        });
+    }
 
     // Add data rows with proper serialization
     data.forEach(row => {
@@ -217,6 +258,16 @@ function convertBigIntToNumber(obj) {
 
     if (Array.isArray(obj)) {
         return obj.map(convertBigIntToNumber);
+    }
+
+    // Handle Date objects - convert to ISO string
+    if (obj instanceof Date) {
+        return obj.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+    }
+
+    // Handle other special object types (RegExp, etc.)
+    if (obj instanceof RegExp || obj instanceof Error) {
+        return obj.toString();
     }
 
     if (typeof obj === 'object') {
