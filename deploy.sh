@@ -96,30 +96,24 @@ check_prerequisites() {
     fi
     print_success "Docker installed: $(docker --version)"
 
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-        print_error "Docker Compose is not installed"
-        echo "Install Docker Compose: https://docs.docker.com/compose/install/"
+    # Force menggunakan docker compose V2 untuk menghindari API version issues
+    if ! docker compose version &> /dev/null; then
+        print_error "Docker Compose V2 is not installed"
+        echo "Install Docker Compose V2: https://docs.docker.com/compose/install/"
+        echo "Note: Use 'docker compose' (V2 plugin), not 'docker-compose' (V1 standalone)"
         exit 1
     fi
 
-    if command -v docker-compose &> /dev/null; then
-        COMPOSE_CMD="docker-compose"
-        print_success "Docker Compose installed: $(docker-compose --version)"
-    else
-        COMPOSE_CMD="docker compose"
-        print_success "Docker Compose installed: $(docker compose version)"
-    fi
+    COMPOSE_CMD="docker compose"
+    print_success "Docker Compose installed: $(docker compose version)"
 
     print_success "Environment variables loaded from .env"
 }
 
-# Detect docker-compose command
+# Force docker compose V2 command
 detect_compose_cmd() {
-    if command -v docker-compose &> /dev/null; then
-        COMPOSE_CMD="docker-compose"
-    else
-        COMPOSE_CMD="docker compose"
-    fi
+    # Always use docker compose V2 to avoid API version issues
+    COMPOSE_CMD="docker compose"
 }
 
 # Detect or set backend type
